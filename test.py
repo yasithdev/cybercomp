@@ -1,72 +1,72 @@
-from cybercomp import Computation, ComputationConfig, Engine, Model
+# from cybercomp import Experiment
 
-if __name__ == "__main__":
-    # list all models
+# if __name__ == "__main__":
+#     # list all models
 
-    # i pick model Z
+#     # i pick model Z
 
-    # define four models
-    model_A = Model(name="", config=dict())
-    model_B = Model(name="", config=dict())
-    model_C = Model(name="", config=dict())
+#     # define four models
+#     model_A = Model(name="", config=dict())
+#     model_B = Model(name="", config=dict())
+#     model_C = Model(name="", config=dict())
 
-    Model, Engine, (params, params)
-
-
-    listX = TypeChecker.find_matches("modelA", "engineB")
-
-    [
-        "progA", "script_for_config_"
-    ]
-
-    config = listX[0]
-
-    print()
-
-    Model(name="")
-
-    engine_A = Engine(name="euler", config=dict())
-    engine_B = Engine(name="rk4", config=dict())
-    engine_C = Engine(name="dopri5", config=dict())
-
-    comp = Computation(
-        model=model_A,
-        engine=engine_A,
-        config=ComputationConfig[dict, dict, dict](
-            inputs=dict(),
-            observations=dict(),
-            hyperparams=dict(),
-        ),
-    )
-    comp.validate()
-    comp.execute(config)
+#     Model, Engine, (params, params)
 
 
-    collectionA = []
+#     listX = TypeChecker.find_matches("modelA", "engineB")
 
-    for i in range(10,1000):
-        for j in range(20,100):
-            experiment = comp.execute(config, params=(i,j))
-            collectionA.append(experiment)
+#     [
+#         "progA", "script_for_config_"
+#     ]
 
-    collectionB = []
-    for i in range(100,100):
-        for j in range(200,1000):
-            experiment = comp.execute(config, params=(i,j))
-            collectionB.append(experiment)
+#     config = listX[0]
+
+#     print()
+
+#     Model(name="")
+
+#     engine_A = Engine(name="euler", config=dict())
+#     engine_B = Engine(name="rk4", config=dict())
+#     engine_C = Engine(name="dopri5", config=dict())
+
+#     comp = Computation(
+#         model=model_A,
+#         engine=engine_A,
+#         config=ComputationConfig[dict, dict, dict](
+#             inputs=dict(),
+#             observations=dict(),
+#             hyperparams=dict(),
+#         ),
+#     )
+#     comp.validate()
+#     comp.execute(config)
 
 
-    collect(handles)
+#     collectionA = []
+
+#     for i in range(10,1000):
+#         for j in range(20,100):
+#             experiment = comp.execute(config, params=(i,j))
+#             collectionA.append(experiment)
+
+#     collectionB = []
+#     for i in range(100,100):
+#         for j in range(200,1000):
+#             experiment = comp.execute(config, params=(i,j))
+#             collectionB.append(experiment)
 
 
-    # ex 1 - same thing run with randomness (n trials)
-    # ex 2 - change a parameter, keeping everything else fixed (m values for params)
+#     collect(handles)
 
-    fetch(collectionA)
 
-    compare(collectionA, collectionB) # should be comparable, if they have **similar observations**
+#     # ex 1 - same thing run with randomness (n trials)
+#     # ex 2 - change a parameter, keeping everything else fixed (m values for params)
 
-    post_analysis
+#     fetch(collectionA)
+
+#     compare(collectionA, collectionB) # should be comparable, if they have **similar observations**
+
+#     post_analysis
 
     
 
@@ -74,28 +74,28 @@ if __name__ == "__main__":
 
 
 
-# search interface for models, parameters, 
+# # search interface for models, parameters, 
 
 
-model = [False]
-params = [None]
+# model = [False]
+# params = [None]
 
 
 
-[Validate] OK
+# [Validate] OK
 
-[Run]
-
-
-#
+# [Run]
 
 
-model A: "network" -> "{NETWORK_CONFIG}"
-model B: "simulation" {NETWORK_CONFIG}]
-model ] ["network" -> "simulation"]
-
-expD = (expA->expB) -> expC
-expE = (expB) -> expC
+# #
 
 
-compare(expD, expE)
+# model A: "network" -> "{NETWORK_CONFIG}"
+# model B: "simulation" {NETWORK_CONFIG}]
+# model ] ["network" -> "simulation"]
+
+# expD = (expA->expB) -> expC
+# expE = (expB) -> expC
+
+
+# compare(expD, expE)

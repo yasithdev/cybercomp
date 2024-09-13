@@ -1,20 +1,19 @@
-from typing import Generic
-
-from pydantic import BaseModel
-
-from .cybercomp import EH, MI, MO, Model, Engine
+from .cybercomp import Model, Engine
 
 
-class ExperimentConfig(BaseModel, Generic[MI, MO, EH]):
-    inputs: MI
-    observations: MO
-    hyperparams: EH
+class Collection:
+
+    models: tuple[Model, ...]
+
+    def __init__(self, *models: Model) -> None:
+        self.models = models
 
 
-class Experiment(BaseModel):
+class Experiment:
     """class to define a concrete experiment, with concrete input/output values provided"""
 
-    model: Model
+    name: str
+    model: Model | Collection
     engine: Engine
 
     def validate(self):

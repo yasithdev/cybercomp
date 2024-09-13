@@ -1,6 +1,6 @@
 description: "convert an 'apple' to an 'orange' (for testing)"
 required_parameters:
-  sample/apple: "file"
+  sample_apple: "file"
 optional_parameters:
 observations:
-  sample/orange: "file"
+  sample_orange: "file"

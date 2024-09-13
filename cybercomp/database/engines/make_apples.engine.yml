@@ -1,6 +1,0 @@
-source_id: "sample"
-command:
-  - "apple_config=[@p:sample/apple_config]"
-  - "apple=[@o:sample/apple]"
-  - "make"
-  - "apple"

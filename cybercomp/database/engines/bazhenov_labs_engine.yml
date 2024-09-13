@@ -1,0 +1,20 @@
+source_id: "sleep-stage-transition"
+engine_parameters:
+supported_models:
+  make_network:
+    command:
+      - "network_config=[@p:neuro_network_config]"
+      - "mri_network=[@p:neuro_mri_network]"
+      - "3D_subnet=[@p:neuro_3D_subnet]"
+      - "3D_distance=[@p:neuro_3D_distance]"
+      - "connection_info=[@o:neuro_connection_info]"
+      - "make"
+      - "network"
+  stim_current:
+    command:
+      - "current_params=[@p:neuro_current_params]"
+      - "connection_info=[@p:neuro_connection_info]"
+      - "current_stim=[@o:neuro_current_stim]"
+      - "make"
+      - "mindcurrent"
+# example - for deep learning, engine could be pytorch

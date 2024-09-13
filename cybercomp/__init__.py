@@ -1,4 +1,5 @@
 from .experiment import Experiment
-from .cybercomp import Manager
+from .loader import Loader
+from .generated import models
 
-__all__ = ["Experiment", "Manager"]
+__all__ = ["Experiment", "Loader", "models"]

@@ -1,0 +1,15 @@
+source_id: "sample"
+engine_parameters:
+supported_models:
+  make_apples:
+    command:
+      - "apple_config=[@p:sample_apple_config]"
+      - "apple=[@o:sample_apple]"
+      - "make"
+      - "apple"
+  apples_to_oranges:
+    command:
+      - "apple=[@p:sample_apple]"
+      - "orange=[@o:sample_orange]"
+      - "make"
+      - "orange"
