@@ -1,0 +1,9 @@
+description: "derive connections of a given brain network"
+required_parameters:
+  neuro/network_config: "file"
+optional_parameters:
+  neuro/mri_network: "file"
+  neuro/3D_subnet: "file"
+  neuro/3D_distance: "file"
+observations:
+  neuro/connection_info: "file"

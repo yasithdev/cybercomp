@@ -1,0 +1,80 @@
+category: neuro
+types:
+  network_config:
+    formats: [file]
+  mri_network:
+    formats: [file]
+  3D_subnet:
+    formats: [file]
+  3D_distance:
+    formats: [file]
+  connection_info:
+    formats: [file]
+  current_params:
+    formats: [file]
+  current_stim:
+    formats: [binary]
+  cx_cx_g_ampa0:
+    formats: [file]
+  dat:
+    formats: [file]
+  field_file_0:
+    formats: [file]
+  field_file_1:
+    formats: [file]
+  field_file_2:
+    formats: [file]
+  field_file_3:
+    formats: [file]
+  field_file_4:
+    formats: [file]
+  field_file_5:
+    formats: [file]
+  field_file_6:
+    formats: [file]
+  field_file_7:
+    formats: [file]
+  graf_cx:
+    formats: [file]
+  graf_cx6:
+    formats: [file]
+  graf_cxa:
+    formats: [file]
+  graf_in:
+    formats: [file]
+  graf_in6:
+    formats: [file]
+  graf_ina:
+    formats: [file]
+  graf_re:
+    formats: [file]
+  graf_tc:
+    formats: [file]
+  graf_tca:
+    formats: [file]
+  time_cx:
+    formats: [file]
+  time_cx6:
+    formats: [file]
+  time_cxa:
+    formats: [file]
+  time_G_AMPA0_CX_CX:
+    formats: [file]
+  time_G_AMPA0_CX_CXa:
+    formats: [file]
+  time_G_AMPA0_CXa_CX:
+    formats: [file]
+  time_G_AMPA0_CXa_CXa:
+    formats: [file]
+  time_in:
+    formats: [file]
+  time_in6:
+    formats: [file]
+  time_ina:
+    formats: [file]
+  time_re:
+    formats: [file]
+  time_tc:
+    formats: [file]
+  time_tca:
+    formats: [file]

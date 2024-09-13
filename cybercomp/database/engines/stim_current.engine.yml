@@ -1,0 +1,7 @@
+source_id: "sleep-stage-transition"
+command:
+  - "current_params=[@p:neuro/current_params]"
+  - "connection_info=[@p:neuro/connection_info]"
+  - "current_stim=[@o:neuro/current_stim]"
+  - "make"
+  - "mindcurrent"

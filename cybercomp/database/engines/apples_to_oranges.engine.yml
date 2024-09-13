@@ -1,0 +1,6 @@
+source_id: "sample"
+command:
+  - "apple=[@p:sample/apple]"
+  - "orange=[@o:sample/orange]"
+  - "make"
+  - "apple"
