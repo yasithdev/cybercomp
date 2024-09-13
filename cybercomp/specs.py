@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 
-class Type(BaseModel):
+class TypeSpec(BaseModel):
     """
     A single semantic type
 
@@ -10,38 +10,33 @@ class Type(BaseModel):
     formats: list[str]
 
 
-class TypeGroup(BaseModel):
+class TypeGroupSpec(BaseModel):
     """
     A group of semantic types
 
     """
 
     category: str
-    types: dict[str, Type]
+    types: dict[str, TypeSpec]
 
 
-class Recipe(BaseModel):
+class RecipeSpec(BaseModel):
     command: list[str]
 
 
-class Engine(BaseModel):
+class EngineSpec(BaseModel):
     """
     A computational engine (i.e., the execution program)
 
     """
 
+    description: str
     source_id: str
     engine_parameters: dict[str, str]
-    supported_models: dict[str, Recipe]
+    supported_models: dict[str, RecipeSpec]
 
 
-class Experiment:
-
-    def __init__(self, model) -> None:
-        pass
-
-
-class Model(BaseModel):
+class ModelSpec(BaseModel):
     """
     A computational model, described by parameters and observations
 
@@ -52,7 +47,7 @@ class Model(BaseModel):
     optional_parameters: dict[str, str]
     observations: dict[str, str]
 
-    def validate(self, type_groups: dict[str, TypeGroup]):
+    def validate(self, type_groups: dict[str, TypeGroupSpec]):
         # flatten the types into dict
         flattened_types: dict[str, list[str]] = dict()
         for group in type_groups.values():

@@ -1,5 +1,16 @@
-from .experiment import Experiment
-from .loader import Loader
-from .generated import models
+from pathlib import Path
 
-__all__ = ["Experiment", "Loader", "models"]
+lib_dir = Path(__file__).parent
+data_dir = lib_dir / "database"
+model_dir = lib_dir / "generated" / "models"
+engine_dir = lib_dir / "generated" / "engines"
+model_dir.mkdir(parents=True, exist_ok=True)
+engine_dir.mkdir(parents=True, exist_ok=True)
+
+
+from .base import Engine, Model
+from .experiment import Collection, Experiment
+from .generated import engines, models
+from .types import Typeshed
+
+__all__ = ["Model", "Engine", "Experiment", "Collection", "Typeshed", "models", "engines"]

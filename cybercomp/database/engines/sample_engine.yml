@@ -1,3 +1,4 @@
+description: "engine for sample simulations with apples and oranges"
 source_id: "sample"
 engine_parameters:
 supported_models:
