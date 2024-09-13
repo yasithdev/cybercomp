@@ -1,4 +1,4 @@
-description: "stimulate a current on a given brain connection"
+description: "stimulate a current on a brain connection"
 required_parameters:
   neuro_current_params: "file"
   neuro_connection_info: "file"

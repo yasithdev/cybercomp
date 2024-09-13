@@ -12,3 +12,11 @@ class Engine:
     """
 
     pass
+
+
+class Runtime:
+    """
+    Base class for an execution context
+    """
+
+    pass

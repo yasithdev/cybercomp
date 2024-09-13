@@ -11,7 +11,7 @@
 ## System Design
 
 - System should find which systems out of N systems are compatible, and suggest them to users
-- System should type-match parameters/observables when coupling models and engines, and when composing larger experiments.
+- System should type-match parameters/observations when coupling models and engines, and when composing larger experiments.
 - system should validate first (before execution) and throw error
 
 ## Terminology

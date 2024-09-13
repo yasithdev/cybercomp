@@ -137,7 +137,7 @@ class Typeshed:
                 class_bases=["Engine"],
                 docstring=engine.description,
                 fixed_params={"source_id": ("str", engine.source_id)},
-                required_params=list(*engine.engine_parameters.keys()),
+                required_params=list(engine.engine_parameters.keys()),
                 # hardcoded paramtypes to str for now
                 required_paramtypes=["str" for _ in engine.engine_parameters.values()],
                 # optional params have None as the default value

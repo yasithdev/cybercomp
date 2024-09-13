@@ -1,6 +1,7 @@
 description: "engine for bazhenov labs neuronal simulations"
 source_id: "sleep-stage-transition"
 engine_parameters:
+  neuro_current_params: "file"
 supported_models:
   make_network:
     command:

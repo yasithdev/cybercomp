@@ -8,9 +8,18 @@ model_dir.mkdir(parents=True, exist_ok=True)
 engine_dir.mkdir(parents=True, exist_ok=True)
 
 
-from .base import Engine, Model
+from .base import Engine, Model, Runtime
 from .experiment import Collection, Experiment
 from .generated import engines, models
 from .types import Typeshed
 
-__all__ = ["Model", "Engine", "Experiment", "Collection", "Typeshed", "models", "engines"]
+__all__ = [
+    "Model",
+    "Engine",
+    "Experiment",
+    "Collection",
+    "Runtime",
+    "Typeshed",
+    "models",
+    "engines",
+]
