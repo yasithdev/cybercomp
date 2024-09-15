@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .base import Engine, Model, Runtime
+from .base import Engine, Model, Runtime, Parameter, Hyperparameter, Observation
 
 
 class Experiment:
@@ -16,9 +16,9 @@ class Experiment:
     name: str
     model: Model
     engine: Engine
-    parameters: dict[str, str]
-    hyperparameters: dict[str, str]
-    observations: dict[str, str]
+    parameters: dict[str, Parameter]
+    hyperparameters: dict[str, Hyperparameter]
+    observations: dict[str, Observation]
     runtime: Runtime
 
     def __init__(
@@ -26,16 +26,14 @@ class Experiment:
         name: str,
         model: type[Model],
         engine: type[Engine],
-        parameters: dict[str, str],
-        hyperparameters: dict[str, str],
-        observations: dict[str, str],
+        parameters: dict[str, Parameter],
+        hyperparameters: dict[str, Hyperparameter],
+        observations: dict[str, Observation],
     ) -> None:
         self.name = name
-        self.model = model(**parameters)
+        self.model = model(**parameters).with_observations(**observations)
         self.engine = engine(**hyperparameters)
-        self.parameters = parameters
-        self.hyperparameters = hyperparameters
-        self.observations = observations
+        print(f"[Experiment] {name} is created")
 
     def execute(self, ctx: Runtime) -> bool:
         """
@@ -45,13 +43,16 @@ class Experiment:
         print("run executed")
         return True
 
-    def gather_observations(self, ctx: Runtime) -> dict[str, Any]:
+    def gather_observations(self, ctx: Runtime) -> dict[str, Observation]:
         """
         Gather generated observations from the runtime for post-analysis
 
         """
         print("observations gathered")
         return {}
+
+    def __or__(self, value: Any) -> Experiment:
+        raise
 
 
 class Collection:
@@ -65,14 +66,14 @@ class Collection:
     def __init__(
         self,
         name: str,
-        models: list[type[Model] | Collection],
+        experiments: list[Experiment | Collection],
         engine: type[Engine],
-        parameters: dict[str, str],
-        hyperparameters: dict[str, str],
-        observations: dict[str, str],
+        parameters: dict[str, Parameter],
+        hyperparameters: dict[str, Hyperparameter],
+        observations: dict[str, Observation],
     ) -> None:
         self.experiments = []
-        for i, item in enumerate(models):
+        for i, item in enumerate(experiments):
             if isinstance(item, type):
                 experiment = Experiment(
                     name=f"{name}_{i}",
@@ -85,6 +86,7 @@ class Collection:
                 self.experiments.append(experiment)
             elif isinstance(item, Collection):
                 self.experiments.append(item)
+        print(f"[Collection] {name} is created")
 
     def execute(self, ctx: Runtime) -> bool:
         """
@@ -94,7 +96,7 @@ class Collection:
         print("run executed")
         return True
 
-    def gather_observations(self, ctx: Runtime) -> dict[str, Any]:
+    def gather_observations(self, ctx: Runtime) -> dict[str, Observation]:
         """
         Gather generated observations from the runtime for post-analysis
 

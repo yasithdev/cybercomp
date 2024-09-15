@@ -8,17 +8,21 @@ from pathlib import Path
 from yaml import safe_load
 
 from .codegen import FS, generate_class_py, generate_init_py
-from .specs import EngineSpec, ModelSpec, TypeGroupSpec, RecipeSpec
+from .specs import EngineSpec, ModelSpec, CategorySpec, RecipeSpec
 
 
 def recipe_to_fs(recipe: RecipeSpec) -> FS:
     args = {}
     command: list[str] = []
     for chunk in recipe.command:
-        if ("[@p:" in chunk or "[@o:" in chunk) and "]" in chunk:
+        if "[@p:" in chunk and "]" in chunk:
             i, j = chunk.index("[@"), chunk.index("]")
             arg = chunk[i + 4 : j]
-            args[arg] = "str"
+            args[arg] = "Parameter[str]"
+        elif "[@o:" in chunk and "]" in chunk:
+            i, j = chunk.index("[@"), chunk.index("]")
+            arg = chunk[i + 4 : j]
+            args[arg] = "Observation[str]"
         command.append(chunk.replace(f"[@p:", f"[@").replace(f"[@o:", f"[@"))
     for arg in args.keys():
         for chunk in command:
@@ -34,7 +38,7 @@ class Typeshed:
     """
 
     models: dict[str, ModelSpec]
-    types: dict[str, TypeGroupSpec]
+    types: dict[str, CategorySpec]
     engines: dict[str, EngineSpec]
     sources: set[str]
 
@@ -57,9 +61,10 @@ class Typeshed:
             with open(fp, "r") as f:
                 data = safe_load(f)
             key = fp.stem
-            g = TypeGroupSpec(**data)
-            self.types[g.category] = TypeGroupSpec(**data)
+            g = CategorySpec(**data)
+            self.types[key] = g
             print("[Type] Loaded", key)
+        # self.generate_types_stubs()
 
     def load_models(self) -> None:
         for fp in self.data_dir.glob("models/*.yml"):
@@ -72,7 +77,7 @@ class Typeshed:
             m.validate(self.types)
             self.models[key] = m
             print("[Model] Loaded", key)
-        self.generate_model_code()
+        self.generate_model_stubs()
 
     def load_engines(self) -> None:
         for fp in self.data_dir.glob("engines/*.yml"):
@@ -83,7 +88,7 @@ class Typeshed:
             key = fp.stem
             self.engines[key] = EngineSpec(**data)
             print("[Engine] Loaded", key)
-        self.generate_engine_code()
+        self.generate_engine_stubs()
 
     def load_sources(self) -> None:
         for fp in self.data_dir.glob("sources/*"):
@@ -91,25 +96,26 @@ class Typeshed:
             print("[Source] Loaded", key)
             self.sources.add(key)
 
-    def generate_model_code(self):
-        model_dir = self.data_dir.parent / "generated" / "models"
+    def generate_types_stubs(self):
+        typ_dir = self.data_dir.parent / "generated" / "types"
 
         # generate independent class files
-        for model_id, model in self.models.items():
-            fp = model_dir / f"{model_id}.py"
+        for typ_id, typ in self.types.items():
+            fp = typ_dir / f"{typ_id}.py"
             code = generate_class_py(
-                imports=[("cybercomp", "Model")],
-                class_name=model_id,
-                class_bases=["Model"],
-                docstring=model.description,
+                imports=[("cybercomp", "Category")],
+                class_name=typ_id,
+                class_bases=["Category"],
+                docstring=f"{typ.category} data types",
                 fixed_params={},
-                required_params=list(model.required_parameters.keys()),
+                typed_params={k: f"Observation[str]" for k, v in typ.observations.items()},
+                required_params=[],
                 # hardcoded paramtypes to str for now
-                required_paramtypes=["str" for _ in model.required_parameters.values()],
+                required_paramtypes=[],
                 # optional params have None as the default value
-                optional_params={k: None for k in model.optional_parameters.keys()},
+                optional_params={},
                 # hardcoded paramtypes to str|None for now
-                optional_paramtypes=["str | None" for _ in model.optional_parameters.values()],
+                optional_paramtypes=[],
                 functions={},
             )
             with open(fp, "w") as f:
@@ -125,21 +131,62 @@ class Typeshed:
             f.write(code)
         print("[Module] Created", fp.relative_to(self.data_dir.parent).as_posix())
 
-    def generate_engine_code(self):
+    def generate_model_stubs(self):
+        model_dir = self.data_dir.parent / "generated" / "models"
+
+        # generate independent class files
+        for model_id, model in self.models.items():
+            fp = model_dir / f"{model_id}.py"
+            code = generate_class_py(
+                imports=[("cybercomp", "Model"), ("cybercomp", "Parameter"), ("cybercomp", "Observation")],
+                class_name=model_id,
+                class_bases=["Model"],
+                docstring=model.description,
+                fixed_params={},
+                typed_params={k: f"Observation[str]" for k, v in model.observations.items()},
+                required_params=list(model.required_parameters.keys()),
+                # hardcoded paramtypes to str for now
+                required_paramtypes=["Parameter[str]" for _ in model.required_parameters.values()],
+                # optional params have None as the default value
+                optional_params={k: None for k in model.optional_parameters.keys()},
+                # hardcoded paramtypes to str|None for now
+                optional_paramtypes=["Parameter[str] | None" for _ in model.optional_parameters.values()],
+                functions={},
+            )
+            with open(fp, "w") as f:
+                f.write(code)
+            print("[Model] Created", fp.relative_to(self.data_dir.parent).as_posix())
+
+        # generate __init__.py for model imports
+        fp = model_dir / f"__init__.py"
+        code = generate_init_py(
+            imports=list(self.models.keys()),
+        )
+        with open(fp, "w") as f:
+            f.write(code)
+        print("[Module] Created", fp.relative_to(self.data_dir.parent).as_posix())
+
+    def generate_engine_stubs(self):
         engine_dir = self.data_dir.parent / "generated" / "engines"
 
         # generate independent class files
         for engine_id, engine in self.engines.items():
             fp = engine_dir / f"{engine_id}.py"
             code = generate_class_py(
-                imports=[("cybercomp", "Engine")],
+                imports=[
+                    ("cybercomp", "Engine"),
+                    ("cybercomp", "Parameter"),
+                    ("cybercomp", "Observation"),
+                    ("cybercomp", "Hyperparameter"),
+                ],
                 class_name=engine_id,
                 class_bases=["Engine"],
                 docstring=engine.description,
                 fixed_params={"source_id": ("str", engine.source_id)},
+                typed_params={},
                 required_params=list(engine.engine_parameters.keys()),
                 # hardcoded paramtypes to str for now
-                required_paramtypes=["str" for _ in engine.engine_parameters.values()],
+                required_paramtypes=["Hyperparameter[str]" for _ in engine.engine_parameters.values()],
                 # optional params have None as the default value
                 optional_params={},
                 # hardcoded paramtypes to str|None for now

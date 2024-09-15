@@ -11,6 +11,7 @@ def generate_class_py(
     class_bases: list[str],
     docstring: str,
     fixed_params: dict[str, tuple[str, str]],
+    typed_params: dict[str, str],
     required_params: list[str],
     required_paramtypes: list[str],
     optional_params: dict[str, str | None],
@@ -46,6 +47,17 @@ def generate_class_py(
                 target=ast.Name(id=attr, ctx=ast.Store()),
                 annotation=ast.Name(id=typ, ctx=ast.Load()),
                 value=ast.Constant(default),
+                simple=1,
+            )
+        )
+
+    # Add fixed attributes with defaults first
+    for attr, typ in typed_params.items():
+        class_def.body.append(
+            ast.AnnAssign(
+                target=ast.Name(id=attr, ctx=ast.Store()),
+                annotation=ast.Name(id=typ, ctx=ast.Load()),
+                value=None,
                 simple=1,
             )
         )

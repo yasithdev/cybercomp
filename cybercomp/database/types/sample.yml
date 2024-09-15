@@ -1,8 +1,11 @@
 category: sample
 types:
   apple_config:
-    formats: [file]
+    description: "path to apple_config file"
+    form: file
   apple:
-    formats: [file]
+    description: "path to apple file"
+    form: file
   orange:
-    formats: [file]
+    description: "path to orange file"
+    form: file

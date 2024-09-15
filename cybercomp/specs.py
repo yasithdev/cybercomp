@@ -7,10 +7,11 @@ class TypeSpec(BaseModel):
 
     """
 
-    formats: list[str]
+    description: str
+    form: str
 
 
-class TypeGroupSpec(BaseModel):
+class CategorySpec(BaseModel):
     """
     A group of semantic types
 
@@ -47,18 +48,18 @@ class ModelSpec(BaseModel):
     optional_parameters: dict[str, str]
     observations: dict[str, str]
 
-    def validate(self, type_groups: dict[str, TypeGroupSpec]):
+    def validate(self, type_groups: dict[str, CategorySpec]):
         # flatten the types into dict
-        flattened_types: dict[str, list[str]] = dict()
+        flattened_types: dict[str, str] = dict()
         for group in type_groups.values():
             for typ, spec in group.types.items():
-                flattened_types[f"{group.category}_{typ}"] = spec.formats
+                flattened_types[f"{group.category}_{typ}"] = spec.form
         # check if required parameters match types
         for param, form in self.required_parameters.items():
             # validate if type is defined
             if param not in flattened_types:
                 raise TypeError(f"type={param} does not exist")
             # validate if type spec matches
-            if form not in flattened_types[param]:
-                raise TypeError(f"format={form} does not match the defined type={param}")
+            if form != flattened_types[param]:
+                raise TypeError(f"format={form} does not match the defined type={flattened_types[param]}")
         print("[Model] Validated")
