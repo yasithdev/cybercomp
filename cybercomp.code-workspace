@@ -1,0 +1,21 @@
+{
+	"folders": [
+		{
+			"name": "cybercomp-python-sdk",
+			"path": "cybercomp-python-sdk"
+		},
+		{
+			"name": "cybercomp-server",
+			"path": "cybercomp-server"
+		},
+		{
+			"name": "examples",
+			"path": "examples"
+		},
+		{
+			"name": "cybercompute",
+			"path": "."
+		}
+	],
+	"settings": {}
+}

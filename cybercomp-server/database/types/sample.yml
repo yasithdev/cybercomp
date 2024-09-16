@@ -1,0 +1,9 @@
+apple_config:
+  description: "path to apple_config file"
+  form: file
+apple:
+  description: "path to apple file"
+  form: file
+orange:
+  description: "path to orange file"
+  form: file
