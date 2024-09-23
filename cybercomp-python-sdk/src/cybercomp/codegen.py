@@ -205,13 +205,13 @@ def generate_class_py(
 
 
 def generate_module(
-    imports: list[str],
+    imports: list[tuple[str, str]],
     typedefs: dict[str, str] = {},
 ):
     # Create import statements for each class
     import_statements = []
-    for imp in imports:
-        import_statements.append(ast.ImportFrom(module=f".{imp}", names=[ast.alias(name=imp, asname=None)], level=0))
+    for src, imp in imports:
+        import_statements.append(ast.ImportFrom(module=src, names=[ast.alias(name=imp, asname=None)], level=0))
 
     # Create the AST module with the import statements
     module = ast.Module(body=import_statements, type_ignores=[])

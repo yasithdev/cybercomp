@@ -73,7 +73,11 @@ class Completions:
         typ_dir.mkdir(parents=True, exist_ok=True)
 
         # generate a single types stub
-        code = generate_module(imports=[], typedefs={k: primitives[v.form] for k, v in self.types.items()})
+        typedefs = dict[str, str]()
+        for k, v in self.types.items():
+            typedefs[k] = f"TypeVar('{k}', {primitives[v.form]}, {primitives[v.form]})"
+
+        code = generate_module(imports=[("typing", "TypeVar")], typedefs=typedefs)
         code = black.format_str(code, mode=black.Mode())
         fp = typ_dir / f"__init__.py"
         with open(fp, "w") as f:
@@ -117,7 +121,7 @@ class Completions:
         # generate __init__.py for model imports
         fp = model_dir / f"__init__.py"
         code = generate_module(
-            imports=list(self.models.keys()),
+            imports=list((f".{k}", k) for k in self.models.keys()),
         )
         code = black.format_str(code, mode=black.Mode())
         with open(fp, "w") as f:
@@ -160,7 +164,7 @@ class Completions:
         # generate __init__.py for engine imports
         fp = engine_dir / f"__init__.py"
         code = generate_module(
-            imports=list(self.engines.keys()),
+            imports=list((f".{k}", k) for k in self.engines.keys()),
         )
         with open(fp, "w") as f:
             f.write(code)

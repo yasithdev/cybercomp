@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Generic, TypeVar
 
-T = TypeVar("T")
+T = TypeVar("T", contravariant=True)
 
 
 class Type(Generic[T]):
@@ -27,13 +27,15 @@ class Parameter(Generic[T]):
 
     value: T
     required: bool
+    typing: TypeVar
 
-    def __init__(self, value: T) -> None:
-        super().__init__()
+    def with_value(self, value: T) -> Parameter[T]:
         self.value = value
+        return self
 
-    def __str__(self) -> str:
-        return str(self.value)
+    def with_typing(self, tv: TypeVar) -> Parameter[T]:
+        self.typing = tv
+        return self
 
 
 class RequiredParameter(Parameter[T]):
@@ -44,6 +46,10 @@ class RequiredParameter(Parameter[T]):
 
     required = True
 
+    def with_value(self, value: T) -> RequiredParameter[T]:
+        self.value = value
+        return self
+
 
 class OptionalParameter(Parameter[T]):
     """
@@ -53,6 +59,10 @@ class OptionalParameter(Parameter[T]):
 
     required = False
 
+    def with_value(self, value: T) -> OptionalParameter[T]:
+        self.value = value
+        return self
+
 
 class Hyperparameter(Generic[T]):
     """
@@ -61,13 +71,15 @@ class Hyperparameter(Generic[T]):
     """
 
     value: T
+    typing: TypeVar
 
-    def __init__(self, value: T) -> None:
-        super().__init__()
+    def with_value(self, value: T) -> Hyperparameter[T]:
         self.value = value
+        return self
 
-    def __str__(self) -> str:
-        return str(self.value)
+    def with_typing(self, tv: TypeVar) -> Hyperparameter[T]:
+        self.typing = tv
+        return self
 
 
 class Observation(Generic[T]):
@@ -77,10 +89,12 @@ class Observation(Generic[T]):
     """
 
     value: T
+    typing: TypeVar
 
-    def __init__(self, value: T) -> None:
-        super().__init__()
+    def with_value(self, value: T) -> Observation[T]:
         self.value = value
+        return self
 
-    def __str__(self) -> str:
-        return str(self.value)
+    def with_typing(self, tv: TypeVar) -> Observation[T]:
+        self.typing = tv
+        return self

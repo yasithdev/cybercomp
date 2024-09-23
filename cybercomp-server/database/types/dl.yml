@@ -1,0 +1,30 @@
+model_name:
+  description: "name of ML model"
+  form: "file"
+model_weights:
+  description: "weights of ML model"
+  form: "file"
+model:
+  description: "reference to ML model + weights"
+  form: "file"
+dataset_name:
+  description: "name of ML dataset"
+  form: "file"
+dataset:
+  description: "reference to ML dataset"
+  form: "file"
+epochs:
+  description: "number of epochs to train the model for"
+  form: "file"
+optimizer:
+  description: "name of optimizer used for model training"
+  form: "file"
+scheduler:
+  description: "name of learning rate scheduler"
+  form: "file"
+probe_layer:
+  description: "layer ID to train a linear model on"
+  form: "file"
+eval_metric:
+  description: "metric to evaluate model performance"
+  form: "file"
