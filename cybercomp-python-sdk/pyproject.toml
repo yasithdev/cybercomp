@@ -16,7 +16,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-dependencies = ["astor", "pydantic"]
+dependencies = ["astor", "pydantic", "black"]
 
 [project.urls]
 homepage = "https://github.com/yasithdev/cybercomp"

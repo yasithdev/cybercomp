@@ -10,13 +10,14 @@ def generate_class_py(
     class_name: str,
     class_bases: list[str],
     docstring: str,
-    fixed_params: dict[str, tuple[str, str]],
-    typed_params: dict[str, str],
-    required_params: list[str],
-    required_paramtypes: list[str],
-    optional_params: dict[str, str | None],
-    optional_paramtypes: list[str],
-    functions: dict[str, FS],
+    fixed_params: dict[str, tuple[str, str]] = {},
+    fixed_typeless_params: dict[str, str] = {},
+    typed_params: dict[str, str] = {},
+    required_params: list[str] = [],
+    required_paramtypes: list[str] = [],
+    optional_params: dict[str, str | None] = {},
+    optional_paramtypes: list[str] = [],
+    functions: dict[str, FS] = {},
 ):
     # Ensure all lists have the same length
     if len(optional_params) != len(optional_paramtypes):
@@ -40,14 +41,23 @@ def generate_class_py(
     if docstring:
         class_def.body.append(ast.Expr(value=ast.Constant(value=docstring)))
 
-    # Add fixed attributes with defaults first
+    # Add fixed-untyped attributes first
     for attr, (typ, default) in fixed_params.items():
         class_def.body.append(
             ast.AnnAssign(
                 target=ast.Name(id=attr, ctx=ast.Store()),
                 annotation=ast.Name(id=typ, ctx=ast.Load()),
-                value=ast.Constant(default),
+                value=None if default is None else ast.Constant(default),
                 simple=1,
+            )
+        )
+
+    # Add fixed-typed attributes next
+    for attr, value in fixed_typeless_params.items():
+        class_def.body.append(
+            ast.Assign(
+                targets=[ast.Name(id=attr, ctx=ast.Store())],
+                value=ast.Name(value),
             )
         )
 
@@ -85,54 +95,54 @@ def generate_class_py(
         )
 
     # Create __init__ method
-    init_method = ast.FunctionDef(
-        name="__init__",
-        args=ast.arguments(
-            args=[ast.arg(arg="self", annotation=None)]
-            + [
-                ast.arg(arg=attr, annotation=ast.Name(id=typ, ctx=ast.Load()))
-                for attr, typ in zip(required_params, required_paramtypes)
-            ]
-            + [
-                ast.arg(arg=attr, annotation=ast.Name(id=typ, ctx=ast.Load()))
-                for attr, typ in zip(optional_params.keys(), optional_paramtypes)
-            ],
-            vararg=None,
-            kwonlyargs=[],
-            kw_defaults=[],
-            kwarg=None,
-            defaults=[ast.Constant(value=val) for val in optional_params.values()],
-        ),  # type: ignore
-        body=[],
-        decorator_list=[],
-    )
+    # init_method = ast.FunctionDef(
+    #     name="__init__",
+    #     args=ast.arguments(
+    #         args=[ast.arg(arg="self", annotation=None)]
+    #         + [
+    #             ast.arg(arg=attr, annotation=ast.Name(id=typ, ctx=ast.Load()))
+    #             for attr, typ in zip(required_params, required_paramtypes)
+    #         ]
+    #         + [
+    #             ast.arg(arg=attr, annotation=ast.Name(id=typ, ctx=ast.Load()))
+    #             for attr, typ in zip(optional_params.keys(), optional_paramtypes)
+    #         ],
+    #         vararg=None,
+    #         kwonlyargs=[],
+    #         kw_defaults=[],
+    #         kwarg=None,
+    #         defaults=[ast.Constant(value=val) for val in optional_params.values()],
+    #     ),  # type: ignore
+    #     body=[],
+    #     decorator_list=[],
+    # )
 
-    empty_init = True
+    # empty_init = True
 
-    # Add assignments in __init__ method
-    for attr in required_params:
-        empty_init = False
-        init_method.body.append(
-            ast.Assign(
-                targets=[ast.Attribute(value=ast.Name(id="self", ctx=ast.Store()), attr=attr, ctx=ast.Store())],
-                value=ast.Name(id=attr, ctx=ast.Load()),
-            )
-        )
+    # # Add assignments in __init__ method
+    # for attr in required_params:
+    #     empty_init = False
+    #     init_method.body.append(
+    #         ast.Assign(
+    #             targets=[ast.Attribute(value=ast.Name(id="self", ctx=ast.Store()), attr=attr, ctx=ast.Store())],
+    #             value=ast.Name(id=attr, ctx=ast.Load()),
+    #         )
+    #     )
 
-    for attr in optional_params.keys():
-        empty_init = False
-        init_method.body.append(
-            ast.Assign(
-                targets=[ast.Attribute(value=ast.Name(id="self", ctx=ast.Store()), attr=attr, ctx=ast.Store())],
-                value=ast.Name(id=attr, ctx=ast.Load()),
-            )
-        )
+    # for attr in optional_params.keys():
+    #     empty_init = False
+    #     init_method.body.append(
+    #         ast.Assign(
+    #             targets=[ast.Attribute(value=ast.Name(id="self", ctx=ast.Store()), attr=attr, ctx=ast.Store())],
+    #             value=ast.Name(id=attr, ctx=ast.Load()),
+    #         )
+    #     )
 
-    if empty_init:
-        init_method.body.append(ast.Pass())
+    # if empty_init:
+    #     init_method.body.append(ast.Pass())
 
     # Add __init__ method to class body
-    class_def.body.append(init_method)
+    # class_def.body.append(init_method)
 
     # Create the function if specified
     for function_name, func in functions.items():
@@ -142,7 +152,6 @@ def generate_class_py(
         function_args_ast = [
             ast.arg(arg=arg, annotation=ast.Name(id=typ, ctx=ast.Load())) for arg, typ in function_args.items()
         ]
-        function_defaults = [ast.Constant(value=None)] * len(function_args)
 
         # Add return statement
         if function_rtype:
@@ -176,7 +185,7 @@ def generate_class_py(
                 kwonlyargs=[],
                 kw_defaults=[],
                 kwarg=None,
-                defaults=function_defaults,
+                defaults=[],
             ),  # type: ignore
             body=[ast.Return(ast.List(elts=function_elts, ctx=ast.Load()))],
             decorator_list=[],

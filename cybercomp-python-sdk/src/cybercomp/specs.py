@@ -1,5 +1,11 @@
 from pydantic import BaseModel
 
+primitives = dict(
+    file="str",
+    binary="str",
+    archive="str",
+)
+
 
 class TypeSpec(BaseModel):
     """

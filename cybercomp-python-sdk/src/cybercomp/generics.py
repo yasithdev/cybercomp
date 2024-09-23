@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import Any, TypeVar, Generic
+
+from typing import Generic, TypeVar
 
 T = TypeVar("T")
 
@@ -25,10 +26,32 @@ class Parameter(Generic[T]):
     """
 
     value: T
+    required: bool
 
     def __init__(self, value: T) -> None:
         super().__init__()
         self.value = value
+
+    def __str__(self) -> str:
+        return str(self.value)
+
+
+class RequiredParameter(Parameter[T]):
+    """
+    Base class for a required parameter
+
+    """
+
+    required = True
+
+
+class OptionalParameter(Parameter[T]):
+    """
+    Base class for an optional parameter
+
+    """
+
+    required = False
 
 
 class Hyperparameter(Generic[T]):
@@ -43,6 +66,9 @@ class Hyperparameter(Generic[T]):
         super().__init__()
         self.value = value
 
+    def __str__(self) -> str:
+        return str(self.value)
+
 
 class Observation(Generic[T]):
     """
@@ -55,3 +81,6 @@ class Observation(Generic[T]):
     def __init__(self, value: T) -> None:
         super().__init__()
         self.value = value
+
+    def __str__(self) -> str:
+        return str(self.value)

@@ -5,17 +5,13 @@ Loads Type Definitions Given in YAML into Strongly Typed Python Objects
 
 from pathlib import Path
 from typing import Any
+import black
 
 from requests import get
 
 from .codegen import generate_class_py, generate_module
-from .specs import EngineSpec, ModelSpec, SourceSpec, TypeSpec
-
-primitives = dict(
-    file="str",
-    binary="str",
-    archive="str",
-)
+from .specs import EngineSpec, ModelSpec, SourceSpec, TypeSpec, primitives
+from .util import recipe_to_fs
 
 
 class Completions:
@@ -78,6 +74,7 @@ class Completions:
 
         # generate a single types stub
         code = generate_module(imports=[], typedefs={k: primitives[v.form] for k, v in self.types.items()})
+        code = black.format_str(code, mode=black.Mode())
         fp = typ_dir / f"__init__.py"
         with open(fp, "w") as f:
             f.write(code)
@@ -90,22 +87,29 @@ class Completions:
         # generate independent class files
         for model_id, model in self.models.items():
             fp = model_dir / f"{model_id}.py"
+
+            params = dict[str, str]()
+            for k in model.required_parameters:
+                params[k] = f"RequiredParameter[{k}]"
+            for k in model.optional_parameters:
+                params[k] = f"OptionalParameter[{k}]"
+            for k in model.observations:
+                params[k] = f"Observation[{k}]"
+
             code = generate_class_py(
-                imports=[("cybercomp", "Model"), ("cybercomp", "Parameter"), ("cybercomp", "Observation")],
+                imports=[
+                    ("cybercomp", "Model"),
+                    ("cybercomp", "RequiredParameter"),
+                    ("cybercomp", "OptionalParameter"),
+                    ("cybercomp", "Observation"),
+                    ("..types", "*"),
+                ],
                 class_name=model_id,
                 class_bases=["Model"],
                 docstring=model.description,
-                fixed_params={},
-                typed_params={k: f"Observation[{primitives[v]}]" for k, v in model.observations.items()},
-                required_params=list(model.required_parameters.keys()),
-                # hardcoded paramtypes to str for now
-                required_paramtypes=[f"Parameter[{primitives[v]}]" for v in model.required_parameters.values()],
-                # optional params have None as the default value
-                optional_params={k: None for k in model.optional_parameters.keys()},
-                # hardcoded paramtypes to str|None for now
-                optional_paramtypes=[f"Parameter[{primitives[v]}] | None" for v in model.optional_parameters.values()],
-                functions={},
+                fixed_typeless_params=params,
             )
+            code = black.format_str(code, mode=black.Mode())
             with open(fp, "w") as f:
                 f.write(code)
             print("[Model] Created", fp.as_posix())
@@ -115,6 +119,7 @@ class Completions:
         code = generate_module(
             imports=list(self.models.keys()),
         )
+        code = black.format_str(code, mode=black.Mode())
         with open(fp, "w") as f:
             f.write(code)
         print("[Module] Created", fp.as_posix())
@@ -126,27 +131,28 @@ class Completions:
         # generate independent class files
         for engine_id, engine in self.engines.items():
             fp = engine_dir / f"{engine_id}.py"
+
+            params = dict[str, str]()
+            for k in engine.engine_parameters:
+                params[k] = f"Hyperparameter[{k}]"
+
             code = generate_class_py(
                 imports=[
                     ("cybercomp", "Engine"),
-                    ("cybercomp", "Parameter"),
+                    ("cybercomp", "RequiredParameter"),
+                    ("cybercomp", "OptionalParameter"),
                     ("cybercomp", "Observation"),
                     ("cybercomp", "Hyperparameter"),
+                    ("..types", "*"),
                 ],
                 class_name=engine_id,
                 class_bases=["Engine"],
                 docstring=engine.description,
                 fixed_params={"source_id": ("str", engine.source_id)},
-                typed_params={},
-                required_params=list(engine.engine_parameters.keys()),
-                # hardcoded paramtypes to str for now
-                required_paramtypes=[f"Hyperparameter[{primitives[v]}]" for v in engine.engine_parameters.values()],
-                # optional params have None as the default value
-                optional_params={},
-                # hardcoded paramtypes to str|None for now
-                optional_paramtypes=[],
+                fixed_typeless_params=params,
                 functions={k: recipe_to_fs(v) for k, v in engine.supported_models.items()},
             )
+            code = black.format_str(code, mode=black.Mode())
             with open(fp, "w") as f:
                 f.write(code)
             print("[engine] Created", fp.as_posix())

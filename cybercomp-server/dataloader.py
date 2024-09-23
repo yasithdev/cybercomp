@@ -6,7 +6,7 @@ Loads Type Definitions from YAML
 from pathlib import Path
 from typing import Any
 
-from cybercomp.specs import CategorySpec, EngineSpec, ModelSpec, TypeSpec
+from cybercomp.specs import CategorySpec, EngineSpec, ModelSpec, TypeSpec, SourceSpec
 from yaml import safe_load
 
 
@@ -43,7 +43,7 @@ class DataLoader:
         for fp in self.types_dir.glob("*.yml"):
             key = fp.stem
             print("[Type]", key)
-            c = CategorySpec(**load_yaml(fp))
+            c = CategorySpec(**{k: TypeSpec(**v) for k, v in load_yaml(fp).items()})
             # prefix each type with its category
             for k, v in c.items():
                 types[f"{key}_{k}"] = v
@@ -69,10 +69,11 @@ class DataLoader:
             engines[key] = e
         return engines
 
-    def list_all_sources(self) -> dict[str, str]:
+    def list_all_sources(self) -> dict[str, SourceSpec]:
         sources = dict[str, str]()
         for fp in self.sources_dir.glob("*"):
             key = fp.stem
             print("[Source]", key)
-            sources[key] = fp.as_posix()
+            s = SourceSpec(fp.as_posix())
+            sources[key] = s
         return sources
