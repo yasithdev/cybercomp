@@ -2,7 +2,7 @@ import ast
 
 import astor
 
-from .util import FS
+from .util_recipes import FS
 
 
 def generate_class_py(

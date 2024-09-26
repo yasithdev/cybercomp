@@ -1,5 +1,6 @@
-from dataloader import DataLoader
 from flask import Flask, jsonify
+
+from dataloader import DataLoader
 
 app = Flask(__name__)
 dl = DataLoader()
@@ -29,5 +30,10 @@ def list_all_sources():
     return jsonify({k: v for k, v in data.items()})
 
 
+@app.route("/status", methods=["GET"])
+def health_check():
+    return jsonify(dict(status=True))
+
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(port=8765, debug=True)

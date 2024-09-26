@@ -1,19 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, TypeVar, get_args
+from abc import ABC
+from typing import Generic, Sequence, TypeVar, get_args
 
-from .generics import Hyperparameter, Observation, Parameter, T
+import numpy as np
 
-# types for a group of parameters, hyperparameters, observations, and outputs
-ParameterArgs = dict[type[Parameter[T]], T]
-HyperparameterArgs = dict[type[Hyperparameter[T]], T]
-ObservationArgs = dict[type[Observation[T]], T]
-Output = Any
-
-
-class TypeMismatchError(BaseException):
-    def __init__(self, *args: object) -> None:
-        super().__init__(*args)
+T = TypeVar("T", contravariant=True)
+N = TypeVar("N", int, float)
 
 
 class Model:
@@ -22,45 +15,12 @@ class Model:
 
     """
 
-    def create_parameters(self, parameters: ParameterArgs) -> list[Parameter]:
-        P = list[Parameter]()
-        for klass, value in parameters.items():
-            tv: TypeVar = get_args(klass)[0]
-            if tv.__name__ not in self.__dir__():
-                raise TypeMismatchError(f"Parameter '{tv.__name__}' does not exist in '{self.__class__.__name__}'")
-                # ensure this parameter exists
-            p = klass().with_typing(tv).with_value(value)
-            P.append(p)
-        return P
-
-    def create_observations(self, observations: ObservationArgs) -> list[Observation]:
-        O = list[Observation]()
-        for klass, value in observations.items():
-            tv: TypeVar = get_args(klass)[0]
-            if tv.__name__ not in self.__dir__():
-                raise TypeMismatchError(f"Parameter '{tv.__name__}' does not exist in '{self.__class__.__name__}'")
-                # ensure this observation exists
-            o = klass().with_typing(tv).with_value(value)
-            O.append(o)
-        return O
-
 
 class Engine:
     """
     Base class for a Computational Engine
 
     """
-
-    def create_hyperparameters(self, hyperparameters: HyperparameterArgs) -> list[Hyperparameter]:
-        H = list[Hyperparameter]()
-        for klass, value in hyperparameters.items():
-            tv: TypeVar = get_args(klass)[0]
-            if tv.__name__ not in self.__dir__():
-                raise TypeMismatchError(f"Parameter '{tv.__name__}' does not exist in '{self.__class__.__name__}'")
-                # ensure this hyperparameter exists
-            h = klass().with_typing(tv).with_value(value)
-            H.append(h)
-        return H
 
 
 class Runtime:
@@ -69,4 +29,116 @@ class Runtime:
 
     """
 
-    pass
+
+class Runnable(ABC):
+
+    def run(self, runtime: Runtime) -> bool:
+        """
+        Execute on a given runtime to generate ouptuts
+
+        """
+        ...
+
+    def fetch(self, runtime: Runtime, *observations: Observation) -> dict[Observation, Output]:
+        """
+        Gather generated outputs
+
+        """
+        ...
+
+
+class Type(Generic[T]):
+    """
+    Base class for a semantic type
+
+    """
+
+
+class Category:
+    """
+    Base class for a category of semantic types
+
+    """
+
+
+class Parameter(Generic[T]):
+    """
+    Base class for a parameter
+
+    """
+
+    value: T
+    required: bool
+    typing: TypeVar
+
+    def with_value(self, value: T) -> Parameter[T]:
+        self.value = value
+        return self
+
+    def with_typing(self, tv: TypeVar) -> Parameter[T]:
+        self.typing = tv
+        return self
+
+    @classmethod
+    def Range(cls, start: N, end: N, num: int) -> Sequence[Parameter[N]]:
+        space = np.linspace(start, end, num)
+        params = list[Parameter[N]]()
+        typ = get_args(cls)[0]
+        for value in space:
+            p = Parameter[typ]().with_value(value).with_typing(typ)
+            params.append(p)
+        return params
+
+
+class Hyperparameter(Generic[T]):
+    """
+    Base class for a hyperparameter
+
+    """
+
+    value: T
+    typing: TypeVar
+
+    def with_value(self, value: T) -> Hyperparameter[T]:
+        self.value = value
+        return self
+
+    def with_typing(self, tv: TypeVar) -> Hyperparameter[T]:
+        self.typing = tv
+        return self
+
+
+class Observation(Generic[T]):
+    """
+    Base class for an observation
+
+    """
+
+    value: T
+    typing: TypeVar
+
+    def with_value(self, value: T) -> Observation[T]:
+        self.value = value
+        return self
+
+    def with_typing(self, tv: TypeVar) -> Observation[T]:
+        self.typing = tv
+        return self
+
+
+class RequiredParameter(Parameter[T]):
+    """
+    Base class for a required parameter
+
+    """
+
+    required = True
+
+
+class OptionalParameter(Parameter[T]):
+    """
+    Base class for an optional parameter
+
+    """
+
+    required = False

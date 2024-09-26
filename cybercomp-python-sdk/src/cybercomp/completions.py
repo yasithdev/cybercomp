@@ -5,13 +5,13 @@ Loads Type Definitions Given in YAML into Strongly Typed Python Objects
 
 from pathlib import Path
 from typing import Any
-import black
 
+import black
 from requests import get
 
 from .codegen import generate_class_py, generate_module
 from .specs import EngineSpec, ModelSpec, SourceSpec, TypeSpec, primitives
-from .util import recipe_to_fs
+from .util_recipes import recipe_to_fs
 
 
 class Completions:
@@ -29,8 +29,13 @@ class Completions:
         self.out_dir = base_path
 
     def sync(self) -> None:
+        # check for connectivity
+        try:
+            res = get(f"{self.server_url}/status")
+            print(f"Connected to cybercomp server on {self.server_url}")
+        except:
+            raise ConnectionError(f"Could not connect to cybercomp server on {self.server_url}") from None
         # fetch metadata and generate python stubs
-
         self.load_types()
         self.load_models()
         self.load_engines()

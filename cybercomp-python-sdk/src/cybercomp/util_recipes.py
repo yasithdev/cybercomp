@@ -1,8 +1,8 @@
-from typing import NamedTuple
+from typing import NamedTuple, Sequence
 
 from .specs import RecipeSpec
 
-FS = NamedTuple("FS", args=dict[str, str], command=list[str], rtype=str | None)
+FS = NamedTuple("FS", args=dict[str, str], command=Sequence[str], rtype=str | None)
 
 
 def recipe_to_fs(recipe: RecipeSpec) -> FS:
