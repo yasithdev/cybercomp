@@ -1,11 +1,11 @@
 description: "train a ML model"
 required_parameters:
-  model: "file"
-  dataset: "file"
-  epochs: "file"
-  optimizer: "file"
-  scheduler: "file"
+  dl_model: "file"
+  dl_dataset: "file"
+  dl_epochs: "file"
+  dl_optimizer: "file"
+  dl_scheduler: "file"
 optional_parameters:
-  model_weights: "file"
+  dl_model_weights: "file"
 observations:
-  model: "file"
+  dl_model: "file"

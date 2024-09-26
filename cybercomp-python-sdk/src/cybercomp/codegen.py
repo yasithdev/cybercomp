@@ -94,56 +94,6 @@ def generate_class_py(
             )
         )
 
-    # Create __init__ method
-    # init_method = ast.FunctionDef(
-    #     name="__init__",
-    #     args=ast.arguments(
-    #         args=[ast.arg(arg="self", annotation=None)]
-    #         + [
-    #             ast.arg(arg=attr, annotation=ast.Name(id=typ, ctx=ast.Load()))
-    #             for attr, typ in zip(required_params, required_paramtypes)
-    #         ]
-    #         + [
-    #             ast.arg(arg=attr, annotation=ast.Name(id=typ, ctx=ast.Load()))
-    #             for attr, typ in zip(optional_params.keys(), optional_paramtypes)
-    #         ],
-    #         vararg=None,
-    #         kwonlyargs=[],
-    #         kw_defaults=[],
-    #         kwarg=None,
-    #         defaults=[ast.Constant(value=val) for val in optional_params.values()],
-    #     ),  # type: ignore
-    #     body=[],
-    #     decorator_list=[],
-    # )
-
-    # empty_init = True
-
-    # # Add assignments in __init__ method
-    # for attr in required_params:
-    #     empty_init = False
-    #     init_method.body.append(
-    #         ast.Assign(
-    #             targets=[ast.Attribute(value=ast.Name(id="self", ctx=ast.Store()), attr=attr, ctx=ast.Store())],
-    #             value=ast.Name(id=attr, ctx=ast.Load()),
-    #         )
-    #     )
-
-    # for attr in optional_params.keys():
-    #     empty_init = False
-    #     init_method.body.append(
-    #         ast.Assign(
-    #             targets=[ast.Attribute(value=ast.Name(id="self", ctx=ast.Store()), attr=attr, ctx=ast.Store())],
-    #             value=ast.Name(id=attr, ctx=ast.Load()),
-    #         )
-    #     )
-
-    # if empty_init:
-    #     init_method.body.append(ast.Pass())
-
-    # Add __init__ method to class body
-    # class_def.body.append(init_method)
-
     # Create the function if specified
     for function_name, func in functions.items():
         function_args = func.args

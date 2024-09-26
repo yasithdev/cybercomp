@@ -1,6 +1,6 @@
 description: "retrieve a ML dataset"
 required_parameters:
-  dataset_name: "file"
+  dl_dataset_name: "file"
 optional_parameters:
 observations:
-  dataset: "file"
+  dl_dataset: "file"

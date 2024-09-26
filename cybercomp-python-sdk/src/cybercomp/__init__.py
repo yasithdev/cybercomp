@@ -1,6 +1,6 @@
 from .base import Engine, Model, Runtime
 from .completions import Completions
-from .experiment import Collection, Experiment
+from .experiment import Experiment
 from .generics import Category, Hyperparameter, Observation, Parameter, RequiredParameter, OptionalParameter
 
 __all__ = [
@@ -14,6 +14,5 @@ __all__ = [
     "Model",
     "Runtime",
     "Experiment",
-    "Collection",
     "Completions",
 ]

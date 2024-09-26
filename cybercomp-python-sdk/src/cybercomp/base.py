@@ -5,9 +5,9 @@ from typing import Any, TypeVar, get_args
 from .generics import Hyperparameter, Observation, Parameter, T
 
 # types for a group of parameters, hyperparameters, observations, and outputs
-Parameters = dict[type[Parameter[T]], T]
-Hyperparameters = dict[type[Hyperparameter[T]], T]
-Observations = dict[type[Observation[T]], T]
+ParameterArgs = dict[type[Parameter[T]], T]
+HyperparameterArgs = dict[type[Hyperparameter[T]], T]
+ObservationArgs = dict[type[Observation[T]], T]
 Output = Any
 
 
@@ -22,7 +22,7 @@ class Model:
 
     """
 
-    def create_parameters(self, parameters: Parameters) -> list[Parameter]:
+    def create_parameters(self, parameters: ParameterArgs) -> list[Parameter]:
         P = list[Parameter]()
         for klass, value in parameters.items():
             tv: TypeVar = get_args(klass)[0]
@@ -33,7 +33,7 @@ class Model:
             P.append(p)
         return P
 
-    def create_observations(self, observations: Observations) -> list[Observation]:
+    def create_observations(self, observations: ObservationArgs) -> list[Observation]:
         O = list[Observation]()
         for klass, value in observations.items():
             tv: TypeVar = get_args(klass)[0]
@@ -51,7 +51,7 @@ class Engine:
 
     """
 
-    def create_hyperparameters(self, hyperparameters: Hyperparameters) -> list[Hyperparameter]:
+    def create_hyperparameters(self, hyperparameters: HyperparameterArgs) -> list[Hyperparameter]:
         H = list[Hyperparameter]()
         for klass, value in hyperparameters.items():
             tv: TypeVar = get_args(klass)[0]

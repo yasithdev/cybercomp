@@ -1,7 +1,7 @@
 description: "retrieve a ML model"
 required_parameters:
-  model_name: "file"
+  dl_model_name: "file"
 optional_parameters:
-  model_weights: "file"
+  dl_model_weights: "file"
 observations:
-  model: "file"
+  dl_model: "file"

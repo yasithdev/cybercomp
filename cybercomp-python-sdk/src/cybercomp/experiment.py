@@ -1,207 +1,220 @@
 from __future__ import annotations
 
-from .base import Engine, Model, Observation, Runtime, Parameters, Hyperparameters, Observations, Output
-from .generics import Hyperparameter, Parameter, T
+from abc import ABC
+from typing import Sequence
+
+from .base import Engine, HyperparameterArgs, Model, Observation, ObservationArgs, Output, ParameterArgs, Runtime
+from .generics import Hyperparameter, Parameter
+
+ModelArgs = type[Model]
+EngineArgs = type[Engine]
 
 
-def union(a: list[T], b: list[T]) -> list[T]:
-    return [*a, *b]
+def observation_to_parameter(o: Observation) -> Parameter:
+    # TODO implement this
+    raise
 
 
-def intersection(A: list[T], B: list[T]) -> list[T]:
-    inter: list[T] = []
-    a_args: list[str] = [type(a).__str__(a) for a in A]
-    b_args: list[str] = [type(b).__str__(b) for b in B]
-    for i, a in enumerate(a_args):
-        if a in b_args:
-            inter.append(A[i])
-    return inter
+def merge_parameters_and_observations(
+    P1: Sequence[Parameter], O1: Sequence[Observation], P2: Sequence[Parameter]
+) -> Sequence[Parameter]:
+    out: Sequence[Parameter] = []
+    for p in P1:
+        out.append(p)
+    for o in O1:
+        out.append(observation_to_parameter(o))
+    for p in P2:
+        # TODO properly implement
+        if p in out:
+            # when parameters are duplicated, enforce priority for newer one
+            out.pop(out.index(p))
+        out.append(p)
+    return out
 
 
-def pipe(a: list[Observation], b: list[Parameter]) -> list[Parameter]:
-    return b
+def merge_hyperparameters(H1: Sequence[Hyperparameter], H2: Sequence[Hyperparameter]) -> Sequence[Hyperparameter]:
+    return [*H1, *H2]
 
 
-class Experiment:
-    """
-    class to define a concrete experiment.
-    expects a concrete model and engine to initialize.
-    parameters, hyperparameters, and observations are provided type-free for now
+def union_observations(O1: Sequence[Observation], O2: Sequence[Observation]) -> Sequence[Observation]:
+    return [*O1, *O2]
 
-    """
 
+def intersect_observations(O1: Sequence[Observation], O2: Sequence[Observation]) -> Sequence[Observation]:
+    out: Sequence[Observation] = []
+    for o in O2:
+        # TODO properly implement
+        if o in O1:
+            out.append(o)
+    return out
+
+
+class Runnable(ABC):
+
+    def run(self, runtime: Runtime) -> bool:
+        """
+        Execute on a given runtime to generate ouptuts
+
+        """
+        ...
+
+    def fetch(self, runtime: Runtime, *observations: Observation) -> dict[Observation, Output]:
+        """
+        Gather generated outputs
+
+        """
+        ...
+
+
+class Experiment(Runnable):
     name: str
-    model: Model
-    engine: Engine
-    runtime: Runtime
-    P: list[Parameter]
-    H: list[Hyperparameter]
-    O: list[Observation]
+    context: tuple[Model, Engine] | Sequence[Experiment]
 
-    def __init__(
-        self,
-        name: str,
-        model: type[Model],
-        engine: type[Engine],
-        parameters: Parameters,
-        hyperparameters: Hyperparameters,
-        observations: Observations,
-    ) -> None:
+    P: Sequence[Parameter]  # parameters
+    H: Sequence[Hyperparameter]  # hyperparameters
+    O: Sequence[Observation]  # observations
+
+    def __init__(self, name: str) -> None:
         self.name = name
-        self.model = model()
-        self.engine = engine()
-        self.P = self.model.create_parameters(parameters)
-        self.H = self.engine.create_hyperparameters(hyperparameters)
-        self.O = self.model.create_observations(observations)
-        print(f"[Experiment] {name} is created")
-        p_str = "\n".join([f"\t{x.typing.__name__}={x.value}" for x in self.P])
-        print(f"[P] {p_str}")
-        h_str = "\n".join([f"\t{x.typing.__name__}={x.value}" for x in self.H])
-        print(f"[H] {h_str}")
-        o_str = "\n".join([f"\t{x.typing.__name__}={x.value}" for x in self.O])
-        print(f"[O] {o_str}")
-
-    def execute(self, ctx: Runtime) -> bool:
-        """
-        Execute the experiment on a given runtime
-
-        """
-        print("run executed")
-        return True
-
-    def retrieve(self, ctx: Runtime, *observations: Observation) -> dict[Observation, Output]:
-        """
-        Gather generated outputs from the runtime for post-analysis
-
-        """
-        print("outputs gathered", observations)
-        return {}
-
-
-class Collection:
-    """
-    convenience class for defining collections of experiments.
-    experiments are optimally chained when defined within a collection.
-    """
-
-    name: str
-    experiments: tuple[Experiment | Collection, ...]
-
-    def __init__(
-        self,
-        name: str,
-        *experiments: Experiment | Collection,
-    ) -> None:
-        self.name = name
-        self.experiments = experiments
-        print(f"[Collection] {name} is created")
 
     @staticmethod
-    def From(
+    def Unit(
         name: str,
-        experiment: Experiment,
-    ) -> Collection:
-        collection = Collection(name, experiment)
-        print(f"[Collection] {name} is created")
-        return collection
-    
+        model: ModelArgs,
+        engine: EngineArgs,
+        parameters: ParameterArgs,
+        hyperparameters: HyperparameterArgs,
+        observations: ObservationArgs,
+    ) -> Experiment:
+        """
+        class to define an experiment unit with a model, engine, parameters,
+        hyperparameters, and observations.
+        """
+        exp = Experiment(name)
+        M, E = model(), engine()
+        exp.context = (M, E)
+        # generate P/H/O based on the given types and context
+        exp.P = M.create_parameters(parameters)
+        exp.H = E.create_hyperparameters(hyperparameters)
+        exp.O = M.create_observations(observations)
+        print(f"[Experiment] {name} is created")
+        p_str = "\n".join([f"\t{x.typing.__name__}={x.value}" for x in exp.P])
+        print(f"[P] {p_str}")
+        h_str = "\n".join([f"\t{x.typing.__name__}={x.value}" for x in exp.H])
+        print(f"[H] {h_str}")
+        o_str = "\n".join([f"\t{x.typing.__name__}={x.value}" for x in exp.O])
+        print(f"[O] {o_str}")
+        return exp
+
+    @staticmethod
+    def Chain(name: str, *experiments: Experiment) -> Sequential:
+        """
+        Define a chain of experiments, where each experiment depends
+        on outputs from the previous experiment.
+
+        """
+        return Sequential(name, *experiments)
+
     @staticmethod
     def Sweep(
         name: str,
         model: type[Model],
         engine: type[Engine],
-        runtime: Runtime,
-        parameter_space: set[Parameters],
-        hyperparameter_space: set[Hyperparameters],
-        observations: Observations,
+        parameter_space: set[ParameterArgs],
+        hyperparameter_space: set[HyperparameterArgs],
+        observations: ObservationArgs,
     ) -> Parallel:
+        """
+        Define an array of independent experiments that run on the given
+        space of input parameters and hyperparameters (an experiment per
+        item in that space). Each experiment can be run in parallel.
+        Same observations will be passed to all experiments.
+
+        """
         # cross product of parameter and hyperparameter spaces
         experiments = []
         for param in parameter_space:
             for hparam in hyperparameter_space:
-                exp = Experiment(name, model, engine, param, hparam, observations)
+                exp = Experiment.Unit(name, model, engine, param, hparam, observations)
                 experiments.append(exp)
         return Parallel(name, *experiments)
-    
-    @staticmethod
-    def Sequential(
-        name: str,
-        *experiments: Experiment | Collection
-    ) -> Sequential:
-        return Sequential(name, *experiments)
 
-    def execute(self, ctx: Runtime) -> bool:
-        """
-        Execute the experiment on a given runtime
+    def run(self, runtime: Runtime) -> bool:
+        raise NotImplementedError()
 
-        """
-        print("run executed")
-        return True
-
-    def retrieve(self, ctx: Runtime, *observations: Observation) -> dict[Observation, Output]:
-        """
-        Gather generated observations from the runtime for post-analysis
-
-        """
-        print("observations gathered", observations)
-        return {}
+    def fetch(self, runtime: Runtime, *observations: Observation) -> dict[Observation, Output]:
+        raise NotImplementedError()
 
 
-class Parallel(Collection):
+class Sequential(Experiment):
     """
-    A collection of parallel experiments
+    A collection of experiments that must run sequentially
 
     """
 
     def __init__(
         self,
         name: str,
-        *experiments: Experiment | Collection,
+        *experiments: Experiment,
     ) -> None:
-        super().__init__(name, *experiments)
-
-
-class Sequential(Collection):
-    """
-    A collection of sequential experiments
-
-    """
-
-    def __init__(
-        self,
-        name: str,
-        *experiments: Experiment | Collection,
-    ) -> None:
-        name = "+".join([e.name for e in experiments])
-        xList = list[Experiment|Collection]()
-        for i, item in enumerate(experiments):
+        super().__init__(name)
+        assert len(experiments) > 0
+        self.context = list[Experiment]()
+        for i, unit in enumerate(experiments):
             if i == 0:
-                # root element
-                xList.append(item)
+                self.context.append(unit)
             else:
-                x_prev = xList[-1]
-                if isinstance(item, Experiment):
-                    x_next = Experiment(
-                        name=f"{name}_{i}",
-                        model=type(item.model),
-                        engine=type(item.engine),
-                        parameters=union(x_prev.parameters, parameters),
-                        hyperparameters=union(item.Harameters, hyperparameters),
-                        observations=union(item.observations, observations),
-                    )
-                xList.append(experiment)
-            elif isinstance(item, Collection):
-                xList.append(item)
-        super().__init__(name, *xList)
+                print(f"[Sequential][{i}] {unit.name}")
+                # carry P/H/O over to the next unit
+                x_prev = self.context[-1]
+                unit.P = merge_parameters_and_observations(x_prev.P, x_prev.O, unit.P)
+                unit.H = merge_hyperparameters(x_prev.H, unit.H)
+                unit.O = union_observations(x_prev.O, unit.O)  # can take observations from any unit
+                self.context.append(unit)
+        # set P/H/O
+        last = self.context[-1]
+        self.P, self.H, self.O = last.P, last.H, last.O
 
-    def then(
+    def run(self, runtime: Runtime) -> bool:
+        raise NotImplementedError()
+
+    def fetch(self, runtime: Runtime, *observations: Observation) -> dict[Observation, Output]:
+        raise NotImplementedError()
+
+
+class Parallel(Experiment):
+    """
+    A collection of experiments that can run in parallel
+
+    """
+
+    def __init__(
         self,
-        expt: Experiment | Collection,
-    ) -> Collection:
-        self.Nx = expt
-        expt.Px = self
-        return expt
+        name: str,
+        *experiments: Experiment,
+    ) -> None:
+        super().__init__(name)
+        self.context = experiments
+        P = list[Parameter]()
+        H = list[Hyperparameter]()
+        O = list[Observation]()
+        for i, unit in enumerate(experiments):
+            print(f"[Parallel][{i}] {unit.name}")
+            if i == 0:
+                P, H, O = unit.P, unit.H, unit.O
+            else:
+                # take union of P/H/O
+                P = merge_parameters_and_observations(P, unit.O, unit.P)
+                H = merge_hyperparameters(H, unit.H)
+                O = intersect_observations(O, unit.O)  # only common observations can be taken
+        self.P, self.H, self.O = P, H, O
+
+    def run(self, runtime: Runtime) -> bool:
+        raise NotImplementedError()
+
+    def fetch(self, runtime: Runtime, *observations: Observation) -> dict[Observation, Output]:
+        raise NotImplementedError()
 
 
-class Analysis(Experiment, Collection):
+class Analysis(Experiment):
     pass
