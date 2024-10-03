@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import Generic, Sequence, TypeVar, get_args
+from typing import Any, Generic, Sequence, TypeVar, get_args
 
 import numpy as np
 
 T = TypeVar("T", contravariant=True)
 N = TypeVar("N", int, float)
+Output = Any
 
 
 class Model:
@@ -79,15 +80,15 @@ class Parameter(Generic[T]):
         self.typing = tv
         return self
 
-    @classmethod
-    def Range(cls, start: N, end: N, num: int) -> Sequence[Parameter[N]]:
+    @staticmethod
+    def Range(klass: type[Parameter], start: N, end: N, num: int) -> Sequence[Parameter[N]]:
         space = np.linspace(start, end, num)
-        params = list[Parameter[N]]()
-        typ = get_args(cls)[0]
+        P = list[Parameter[N]]()
+        typ = get_args(klass)[0]
         for value in space:
-            p = Parameter[typ]().with_value(value).with_typing(typ)
-            params.append(p)
-        return params
+            p = Parameter[typ]().with_value(value.item()).with_typing(typ)
+            P.append(p)
+        return P
 
 
 class Hyperparameter(Generic[T]):
@@ -106,6 +107,16 @@ class Hyperparameter(Generic[T]):
     def with_typing(self, tv: TypeVar) -> Hyperparameter[T]:
         self.typing = tv
         return self
+
+    @staticmethod
+    def Range(klass: type[Hyperparameter], start: N, end: N, num: int) -> Sequence[Hyperparameter[N]]:
+        space = np.linspace(start, end, num)
+        H = list[Hyperparameter[N]]()
+        typ = get_args(klass)[0]
+        for value in space:
+            p = Hyperparameter[typ]().with_value(value.item()).with_typing(typ)
+            H.append(p)
+        return H
 
 
 class Observation(Generic[T]):

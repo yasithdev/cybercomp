@@ -1,15 +1,14 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import Any, Sequence, TypeVar, get_args
 
-from .base import Engine, Hyperparameter, Model, Observation, Parameter, Runnable, Runtime, T
+from .base import (Engine, Hyperparameter, Model, Observation, Parameter,
+                   Runnable, Runtime, T)
 from .exceptions import TypeMismatchError
-from .util_composition import (
-    intersect_observations,
-    merge_hyperparameters,
-    merge_parameters_and_observations,
-    union_observations,
-)
+from .util_composition import (intersect_observations, merge_hyperparameters,
+                               merge_parameters_and_observations,
+                               union_observations)
 
 ModelArgs = type[Model]
 EngineArgs = type[Engine]
@@ -50,6 +49,14 @@ class Experiment(Runnable):
         o_str = "\n".join([f"\t{x.typing.__name__}={x.value}" for x in self.O])
         print(f"[O] {o_str}")
 
+    def run(self, runtime: Runtime) -> bool:
+        # TODO implement this
+        raise NotImplementedError()
+
+    def fetch(self, runtime: Runtime, *observations: Observation) -> dict[Observation, Output]:
+        # TODO implement this
+        raise NotImplementedError()
+
     @staticmethod
     def Unit(
         name: str,
@@ -71,14 +78,6 @@ class Experiment(Runnable):
         exp.describe()
         return exp
 
-    def run(self, runtime: Runtime) -> bool:
-        # TODO implement this
-        raise NotImplementedError()
-
-    def fetch(self, runtime: Runtime, *observations: Observation) -> dict[Observation, Output]:
-        # TODO implement this
-        raise NotImplementedError()
-
     @staticmethod
     def Sequence(name: str, *experiments: Experiment) -> Sequential:
         """
@@ -92,9 +91,9 @@ class Experiment(Runnable):
     def Sweep(
         name: str,
         context: UnitContext | CollectionContext,
-        parameter_space: set[ParameterArgs],
-        hyperparameter_space: set[HyperparameterArgs],
-        observations: ObservationArgs,
+        parameter_space: Sequence[Sequence[Parameter]],
+        hyperparameter_space: Sequence[Sequence[Hyperparameter]],
+        observations: Sequence[Observation],
     ) -> Parallel:
         """
         Define an array of independent experiments that run on the given
@@ -105,11 +104,9 @@ class Experiment(Runnable):
         """
         # cross product of parameter and hyperparameter spaces
         experiments = []
-        for param in parameter_space:
-            for hparam in hyperparameter_space:
-                P = create_parameters(context, param)
-                H = create_hyperparameters(context, hparam)
-                O = create_observations(context, observations)
+        for P in parameter_space:
+            for H in hyperparameter_space:
+                O = observations
                 exp = Experiment(name, context, P, H, O)
                 experiments.append(exp)
         return Parallel(name, *experiments)
@@ -129,6 +126,7 @@ class Sequential(Experiment):
         assert len(experiments) > 0
         context = list[Experiment]()
         for i, unit in enumerate(experiments):
+            unit = deepcopy(unit)
             print(f"[Sequential][{i}] {unit.name}")
             if i == 0:
                 context.append(unit)
