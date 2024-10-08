@@ -2,5 +2,5 @@ description: "generate an 'apple' (for testing)"
 required_parameters:
   sample_apple_config: "file"
 optional_parameters:
-observations:
+observables:
   sample_apple: "file"

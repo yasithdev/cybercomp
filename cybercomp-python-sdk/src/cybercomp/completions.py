@@ -102,15 +102,15 @@ class Completions:
                 params[k] = f"RequiredParameter[{k}]"
             for k in model.optional_parameters:
                 params[k] = f"OptionalParameter[{k}]"
-            for k in model.observations:
-                params[k] = f"Observation[{k}]"
+            for k in model.observables:
+                params[k] = f"Observable[{k}]"
 
             code = generate_class_py(
                 imports=[
                     ("cybercomp", "Model"),
                     ("cybercomp", "RequiredParameter"),
                     ("cybercomp", "OptionalParameter"),
-                    ("cybercomp", "Observation"),
+                    ("cybercomp", "Observable"),
                     ("..types", "*"),
                 ],
                 class_name=model_id,
@@ -150,7 +150,7 @@ class Completions:
                     ("cybercomp", "Engine"),
                     ("cybercomp", "RequiredParameter"),
                     ("cybercomp", "OptionalParameter"),
-                    ("cybercomp", "Observation"),
+                    ("cybercomp", "Observable"),
                     ("cybercomp", "Hyperparameter"),
                     ("..types", "*"),
                 ],

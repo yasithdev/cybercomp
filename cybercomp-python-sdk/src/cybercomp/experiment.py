@@ -1,259 +1,201 @@
 from __future__ import annotations
 
-from copy import deepcopy
-from typing import Any, Sequence, TypeVar, get_args
+from itertools import chain, product
+from typing import Sequence
 
-from .base import (Engine, Hyperparameter, Model, Observation, Parameter,
-                   Runnable, Runtime, T)
-from .exceptions import TypeMismatchError
-from .util_composition import (intersect_observations, merge_hyperparameters,
-                               merge_parameters_and_observations,
-                               union_observations)
+from .base import Engine, Hyperparameter, Model, Observable, Observation, Parameter, Runnable, Runtime
+from .util_composition import merge_hyperparameters, merge_observables, merge_parameters_and_observables
 
-ModelArgs = type[Model]
-EngineArgs = type[Engine]
-UnitContext = tuple[Model, Engine]
-CollectionContext = Sequence[Runnable]
-ParameterArgs = dict[type[Parameter[T]], T]
-HyperparameterArgs = dict[type[Hyperparameter[T]], T]
-ObservationArgs = dict[type[Observation[T]], T]
-Output = Any
+ArgSet = Sequence[Parameter | Hyperparameter | Observable]
+
+
+def args(
+    parameter_space: Sequence[Sequence[Parameter]],
+    hyperparameter_space: Sequence[Sequence[Hyperparameter]],
+    observables: Sequence[Observable],
+) -> Sequence[ArgSet]:
+    """
+    Replicate a computational step on discrete samples from
+    a parameter/hyperparameter space.
+
+    """
+    # cross product of parameter and hyperparameter spaces
+    argsets = list[ArgSet]()
+    for parameters, hyperparameters in product(parameter_space, hyperparameter_space):
+        argset = [*parameters, *hyperparameters, *observables]
+        argsets.append(argset)
+    return argsets
+
+
+def step(model: Model, engine: Engine, name: str) -> Step:
+    return Step(name, model, engine)
+
+
+def experiment(*steps: Step, name: str) -> Experiment:
+    return Experiment(name, *steps)
+
+
+def replicate(step: Step, *argset: ArgSet, name: str) -> Experiment:
+    return Experiment(name, step).bind(*argset)
+
+
+class Step(Runnable):
+    """
+    A single computational step
+
+    """
+
+    model: Model
+    engine: Engine
+
+    def __init__(self, name: str, model: Model, engine: Engine) -> None:
+        super().__init__(name)
+        self.model = model
+        self.engine = engine
+
+    def __rshift__(self, other: Runnable) -> Experiment:
+        if not isinstance(other, Runnable):
+            raise TypeError(f"Unsupported operand type(s) for >>: 'Step' and '{type(other).__name__}'")
+        return Experiment(f"{self.name}>>{other.name}", self, other)
+
+    def run(self, *args: ArgSet, runtime: Runtime) -> bool:
+        return super().run(*args, runtime=runtime)
+
+    def fetch(
+        self, *args: ArgSet, runtime: Runtime, observables: Sequence[Observable]
+    ) -> Sequence[Sequence[Observation]]:
+        return super().fetch(*args, runtime=runtime, observables=observables)
 
 
 class Experiment(Runnable):
-
-    name: str
-    context: UnitContext | CollectionContext
-    P: Sequence[Parameter]  # parameters
-    H: Sequence[Hyperparameter]  # hyperparameters
-    O: Sequence[Observation]  # observations
-
-    def __init__(
-        self,
-        name: str,
-        context: UnitContext | CollectionContext,
-        P: Sequence[Parameter],
-        H: Sequence[Hyperparameter],
-        O: Sequence[Observation],
-    ) -> None:
-        self.name = name
-        self.context = context
-        self.P, self.H, self.O = P, H, O
-
-    def describe(self):
-        print(f"[Experiment] {self.name} is created")
-        p_str = "\n".join([f"\t{x.typing.__name__}={x.value}" for x in self.P])
-        print(f"[P] {p_str}")
-        h_str = "\n".join([f"\t{x.typing.__name__}={x.value}" for x in self.H])
-        print(f"[H] {h_str}")
-        o_str = "\n".join([f"\t{x.typing.__name__}={x.value}" for x in self.O])
-        print(f"[O] {o_str}")
-
-    def run(self, runtime: Runtime) -> bool:
-        # TODO implement this
-        raise NotImplementedError()
-
-    def fetch(self, runtime: Runtime, *observations: Observation) -> dict[Observation, Output]:
-        # TODO implement this
-        raise NotImplementedError()
-
-    @staticmethod
-    def Unit(
-        name: str,
-        model: ModelArgs,
-        engine: EngineArgs,
-        parameters: ParameterArgs,
-        hyperparameters: HyperparameterArgs,
-        observations: ObservationArgs,
-    ) -> Experiment:
-        """
-        class to define an experiment unit with a model, engine, parameters,
-        hyperparameters, and observations.
-        """
-        context = model(), engine()
-        P = create_parameters(context, parameters)
-        H = create_hyperparameters(context, hyperparameters)
-        O = create_observations(context, observations)
-        exp = Experiment(name, context, P, H, O)
-        exp.describe()
-        return exp
-
-    @staticmethod
-    def Sequence(name: str, *experiments: Experiment) -> Sequential:
-        """
-        Define a chain of experiments, where each experiment depends
-        on outputs from the previous experiment.
-
-        """
-        return Sequential(name, *experiments)
-
-    @staticmethod
-    def Sweep(
-        name: str,
-        context: UnitContext | CollectionContext,
-        parameter_space: Sequence[Sequence[Parameter]],
-        hyperparameter_space: Sequence[Sequence[Hyperparameter]],
-        observations: Sequence[Observation],
-    ) -> Parallel:
-        """
-        Define an array of independent experiments that run on the given
-        space of input parameters and hyperparameters (an experiment per
-        item in that space). Each experiment can be run in parallel.
-        Same observations will be passed to all experiments.
-
-        """
-        # cross product of parameter and hyperparameter spaces
-        experiments = []
-        for P in parameter_space:
-            for H in hyperparameter_space:
-                O = observations
-                exp = Experiment(name, context, P, H, O)
-                experiments.append(exp)
-        return Parallel(name, *experiments)
-
-
-class Sequential(Experiment):
     """
-    A collection of experiments that must run sequentially
+    A sequence of computational steps where
+    the next step depends on past outputs.
 
     """
 
-    def __init__(
-        self,
-        name: str,
-        *experiments: Experiment,
-    ) -> None:
-        assert len(experiments) > 0
-        context = list[Experiment]()
-        for i, unit in enumerate(experiments):
-            unit = deepcopy(unit)
-            print(f"[Sequential][{i}] {unit.name}")
-            if i == 0:
-                context.append(unit)
-            else:
-                # carry P/H/O over to the next unit
-                x_prev = context[-1]
-                unit.P = merge_parameters_and_observations(x_prev.P, x_prev.O, unit.P)
-                unit.H = merge_hyperparameters(x_prev.H, unit.H)
-                unit.O = union_observations(x_prev.O, unit.O)  # can take observations from any unit
-                context.append(unit)
-        # set P/H/O
-        last = context[-1]
-        super().__init__(name, context, last.P, last.H, last.O)
+    specs: list[ArgSet] = []
 
-    def run(self, runtime: Runtime) -> bool:
-        raise NotImplementedError()
+    def __init__(self, name: str, *steps: Runnable) -> None:
+        assert len(steps) > 0
+        super().__init__(name)
+        self.steps = steps
 
-    def fetch(self, runtime: Runtime, *observations: Observation) -> dict[Observation, Output]:
-        raise NotImplementedError()
+    def __rshift__(self, other: Step) -> Experiment:
+        if not isinstance(other, Step):
+            raise TypeError(f"Unsupported operand type(s) for >>: 'Experiment' and '{type(other).__name__}'")
+        return Experiment(f"{self.name}>>{other.name}", self, other)
 
+    def __str__(self) -> str:
+        return f"name=[{self.name}], steps=[" + ">>".join([s.name for s in self.steps]) + "]"
 
-class Parallel(Experiment):
-    """
-    A collection of experiments that can run in parallel
+    def bind(self, *args: ArgSet) -> Experiment:
+        """
+        Bind runtime args to the collection
 
-    """
+        """
+        P, H, O = [], [], []
+        for i, A in enumerate(args):
+            P = merge_parameters_and_observables(P, O, [c for c in A if isinstance(c, Parameter)])
+            H = merge_hyperparameters(H, [c for c in A if isinstance(c, Hyperparameter)])
+            O = merge_observables(O, [c for c in A if isinstance(c, Observable)])
+            spec = list(chain(P, H, O))
+            self.specs.append(spec)
+            print(f"[{self.name}][{i}] {P} {H} {O}")
+        return self
 
-    def __init__(
-        self,
-        name: str,
-        *experiments: Experiment,
-    ) -> None:
-        context = experiments
-        P = list[Parameter]()
-        H = list[Hyperparameter]()
-        O = list[Observation]()
-        for i, unit in enumerate(experiments):
-            print(f"[Parallel][{i}] {unit.name}")
-            if i == 0:
-                P, H, O = unit.P, unit.H, unit.O
-            else:
-                # take union of P/H/O
-                P = merge_parameters_and_observations(P, unit.O, unit.P)
-                H = merge_hyperparameters(H, unit.H)
-                O = intersect_observations(O, unit.O)  # only common observations can be taken
-        super().__init__(name, context, P, H, O)
+    def run(self, *args: ArgSet, runtime: Runtime) -> bool:
+        return super().run(*args, runtime=runtime)
 
-    def run(self, runtime: Runtime) -> bool:
-        raise NotImplementedError()
-
-    def fetch(self, runtime: Runtime, *observations: Observation) -> dict[Observation, Output]:
-        raise NotImplementedError()
+    def fetch(
+        self, *args: ArgSet, runtime: Runtime, observables: Sequence[Observable]
+    ) -> Sequence[Sequence[Observation]]:
+        return super().fetch(*args, runtime=runtime, observables=observables)
 
 
-def create_parameters(context: UnitContext | CollectionContext, parameters: ParameterArgs) -> Sequence[Parameter]:
-    if len(context) == 2 and isinstance(context[0], Model) and isinstance(context[1], Engine):
-        M: Model = context[0]
-        names = M.__dir__()
-        obj_name = M.__class__.__name__
-    else:
-        names = set()
-        objs = []
-        for exp in context:
-            assert isinstance(exp, Experiment)
-            names.update([p.typing.__name__ for p in exp.P])
-            objs.append(exp.name)
-        obj_name = "|".join(objs)
+# from .exceptions import TypeMismatchError
 
-    P = list[Parameter]()
-    for klass, value in parameters.items():
-        tv: TypeVar = get_args(klass)[0]
-        if tv.__name__ not in names:
-            raise TypeMismatchError(f"Parameter '{tv.__name__}' does not exist in '{obj_name}'")
-            # ensure this parameter exists
-        p = klass().with_typing(tv).with_value(value)
-        P.append(p)
-    return P
+# conditions: ArgSet = [],
 
+# def describe(self, P, H, O):
+#     print(f"[Experiment] {self.name} is created")
+#     p_str = "\n".join([f"\t{x.typing.__name__}={x.value}" for x in P])
+#     print(f"[P] {p_str}")
+#     h_str = "\n".join([f"\t{x.typing.__name__}={x.value}" for x in H])
+#     print(f"[H] {h_str}")
+#     o_str = "\n".join([f"\t{x.typing.__name__}={x.value}" for x in O])
+#     print(f"[O] {o_str}")
 
-def create_hyperparameters(
-    context: UnitContext | CollectionContext, hyperparameters: HyperparameterArgs
-) -> Sequence[Hyperparameter]:
-    if len(context) == 2 and isinstance(context[0], Model) and isinstance(context[1], Engine):
-        E: Engine = context[1]
-        names = E.__dir__()
-        obj_name = E.__class__.__name__
-    else:
-        names = set()
-        objs = []
-        for exp in context:
-            assert isinstance(exp, Experiment)
-            names.update([h.typing.__name__ for h in exp.H])
-            objs.append(exp.name)
-        obj_name = "|".join(objs)
-    H = list[Hyperparameter]()
-    for klass, value in hyperparameters.items():
-        tv: TypeVar = get_args(klass)[0]
-        if tv.__name__ not in names:
-            raise TypeMismatchError(f"Parameter '{tv.__name__}' does not exist in '{obj_name}'")
-            # ensure this hyperparameter exists
-        h = klass().with_typing(tv).with_value(value)
-        H.append(h)
-    return H
+# P = create_parameters(context, parameters)
+# H = create_hyperparameters(context, hyperparameters)
+# O = create_observables(context, observables)
+
+# def create_parameters(context: Step | Experiment, parameters: Parameters) -> Sequence[Parameter]:
+#     if isinstance(context, Step):
+#         M = context.model
+#         names = M.__dir__()
+#         obj_name = M.__class__.__name__
+#     else:
+#         names = set()
+#         objs = []
+#         for step in context.steps:
+#             assert isinstance(step, Step)
+#             names.update([p.typing.__name__ for p in step.P])
+#             objs.append(step.name)
+#         obj_name = "|".join(objs)
+
+#     P = list[Parameter]()
+#     for p in parameters:
+#         tv, value = p.typing, p.value
+#         if tv.__name__ not in names:
+#             raise TypeMismatchError(f"Parameter '{tv.__name__}' does not exist in '{obj_name}'")
+#             # ensure this parameter exists
+#         P.append(p)
+#     return P
 
 
-def create_observations(
-    context: UnitContext | CollectionContext, observations: ObservationArgs
-) -> Sequence[Observation]:
-    if len(context) == 2 and isinstance(context[0], Model) and isinstance(context[1], Engine):
-        M: Model = context[0]
-        names = M.__dir__()
-        obj_name = M.__class__.__name__
-    else:
-        names = set()
-        objs = []
-        for exp in context:
-            assert isinstance(exp, Experiment)
-            names.update([o.typing.__name__ for o in exp.O])
-            objs.append(exp.name)
-        obj_name = "|".join(objs)
+# def create_hyperparameters(context: Step | Experiment, hyperparameters: Hyperparameters) -> Sequence[Hyperparameter]:
+#     if isinstance(context, Step):
+#         E = context.engine
+#         names = E.__dir__()
+#         obj_name = E.__class__.__name__
+#     else:
+#         names = set()
+#         objs = []
+#         for step in context.steps:
+#             assert isinstance(step, Step)
+#             names.update([h.typing.__name__ for h in step.H])
+#             objs.append(step.name)
+#         obj_name = "|".join(objs)
+#     H = list[Hyperparameter]()
+#     for h in hyperparameters:
+#         tv, value = h.typing, h.value
+#         if tv.__name__ not in names:
+#             raise TypeMismatchError(f"Parameter '{tv.__name__}' does not exist in '{obj_name}'")
+#             # ensure this hyperparameter exists
+#         H.append(h)
+#     return H
 
-    O = list[Observation]()
-    for klass, value in observations.items():
-        tv: TypeVar = get_args(klass)[0]
-        if tv.__name__ not in names:
-            raise TypeMismatchError(f"Parameter '{tv.__name__}' does not exist in '{obj_name}'")
-            # ensure this observation exists
-        o = klass().with_typing(tv).with_value(value)
-        O.append(o)
-    return O
+
+# def create_observables(context: Step | Experiment, observables: Observables) -> Sequence[Observable]:
+#     if isinstance(context, Step):
+#         M = context.model
+#         names = M.__dir__()
+#         obj_name = M.__class__.__name__
+#     else:
+#         names = set()
+#         objs = []
+#         for step in context.steps:
+#             assert isinstance(step, Step)
+#             names.update([o.typing.__name__ for o in step.O])
+#             objs.append(step.name)
+#         obj_name = "|".join(objs)
+
+#     O = list[Observable]()
+#     for o in observables:
+#         tv, value = o.typing, o.value
+#         if tv.__name__ not in names:
+#             raise TypeMismatchError(f"Parameter '{tv.__name__}' does not exist in '{obj_name}'")
+#             # ensure this observation exists
+#         O.append(o)
+#     return O

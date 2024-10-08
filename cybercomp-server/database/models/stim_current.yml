@@ -3,7 +3,7 @@ required_parameters:
   neuro_current_params: "file"
   neuro_connection_info: "file"
 optional_parameters:
-observations:
+observables:
   neuro_current_stim: "binary"
   neuro_cx_cx_g_ampa0: "file"
   neuro_dat: "file"

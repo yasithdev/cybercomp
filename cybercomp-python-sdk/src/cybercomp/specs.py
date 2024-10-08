@@ -54,14 +54,14 @@ class EngineSpec(BaseModel):
 
 class ModelSpec(BaseModel):
     """
-    A computational model, described by parameters and observations
+    A computational model, described by parameters and observables
 
     """
 
     description: str
     required_parameters: dict[str, str]
     optional_parameters: dict[str, str]
-    observations: dict[str, str]
+    observables: dict[str, str]
 
     def validate(self, types: dict[str, TypeSpec]):
         # check if required parameters match types

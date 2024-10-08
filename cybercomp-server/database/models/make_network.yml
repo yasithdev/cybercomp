@@ -5,5 +5,5 @@ optional_parameters:
   neuro_mri_network: "file"
   neuro_3D_subnet: "file"
   neuro_3D_distance: "file"
-observations:
+observables:
   neuro_connection_info: "file"

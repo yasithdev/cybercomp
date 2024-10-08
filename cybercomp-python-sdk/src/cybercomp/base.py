@@ -7,7 +7,7 @@ import numpy as np
 
 T = TypeVar("T", contravariant=True)
 N = TypeVar("N", int, float)
-Output = Any
+Observation = Any
 
 
 class Model:
@@ -33,14 +33,29 @@ class Runtime:
 
 class Runnable(ABC):
 
-    def run(self, runtime: Runtime) -> bool:
+    name: str
+
+    def __init__(self, name: str) -> None:
+        super().__init__()
+        self.name = name
+
+    def run(
+        self,
+        *args: Sequence[Parameter | Hyperparameter | Observable],
+        runtime: Runtime,
+    ) -> bool:
         """
         Execute on a given runtime to generate ouptuts
 
         """
         ...
 
-    def fetch(self, runtime: Runtime, *observations: Observation) -> dict[Observation, Output]:
+    def fetch(
+        self,
+        *args: Sequence[Parameter | Hyperparameter | Observable],
+        runtime: Runtime,
+        observables: Sequence[Observable],
+    ) -> Sequence[Sequence[Observation]]:
         """
         Gather generated outputs
 
@@ -69,16 +84,13 @@ class Parameter(Generic[T]):
     """
 
     value: T
-    required: bool
     typing: TypeVar
+    required: bool
 
-    def with_value(self, value: T) -> Parameter[T]:
-        self.value = value
-        return self
-
-    def with_typing(self, tv: TypeVar) -> Parameter[T]:
-        self.typing = tv
-        return self
+    def __init__(self, t: TypeVar, v: T) -> None:
+        super().__init__()
+        self.value = v
+        self.typing = t
 
     @staticmethod
     def Range(klass: type[Parameter], start: N, end: N, num: int) -> Sequence[Parameter[N]]:
@@ -86,7 +98,7 @@ class Parameter(Generic[T]):
         P = list[Parameter[N]]()
         typ = get_args(klass)[0]
         for value in space:
-            p = Parameter[typ]().with_value(value.item()).with_typing(typ)
+            p = Parameter[typ](typ, value.item())
             P.append(p)
         return P
 
@@ -100,13 +112,10 @@ class Hyperparameter(Generic[T]):
     value: T
     typing: TypeVar
 
-    def with_value(self, value: T) -> Hyperparameter[T]:
-        self.value = value
-        return self
-
-    def with_typing(self, tv: TypeVar) -> Hyperparameter[T]:
-        self.typing = tv
-        return self
+    def __init__(self, t: TypeVar, v: T) -> None:
+        super().__init__()
+        self.value = v
+        self.typing = t
 
     @staticmethod
     def Range(klass: type[Hyperparameter], start: N, end: N, num: int) -> Sequence[Hyperparameter[N]]:
@@ -114,12 +123,12 @@ class Hyperparameter(Generic[T]):
         H = list[Hyperparameter[N]]()
         typ = get_args(klass)[0]
         for value in space:
-            p = Hyperparameter[typ]().with_value(value.item()).with_typing(typ)
+            p = Hyperparameter[typ](typ, value.item())
             H.append(p)
         return H
 
 
-class Observation(Generic[T]):
+class Observable(Generic[T]):
     """
     Base class for an observation
 
@@ -128,13 +137,10 @@ class Observation(Generic[T]):
     value: T
     typing: TypeVar
 
-    def with_value(self, value: T) -> Observation[T]:
-        self.value = value
-        return self
-
-    def with_typing(self, tv: TypeVar) -> Observation[T]:
-        self.typing = tv
-        return self
+    def __init__(self, t: TypeVar, v: T) -> None:
+        super().__init__()
+        self.value = v
+        self.typing = t
 
 
 class RequiredParameter(Parameter[T]):
@@ -153,3 +159,15 @@ class OptionalParameter(Parameter[T]):
     """
 
     required = False
+
+
+def parameter(typ: TypeVar, value: T) -> Parameter[T]:
+    return Parameter[T](typ, value)
+
+
+def hyperparameter(typ: TypeVar, value: T) -> Hyperparameter[T]:
+    return Hyperparameter[T](typ, value)
+
+
+def observation(typ: TypeVar, value: T) -> Observable[T]:
+    return Observable[T](typ, value)

@@ -7,5 +7,5 @@ required_parameters:
   dl_scheduler: "file"
 optional_parameters:
   dl_model_weights: "file"
-observations:
+observables:
   dl_model: "file"

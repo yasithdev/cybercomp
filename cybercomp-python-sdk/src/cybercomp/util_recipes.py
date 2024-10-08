@@ -16,7 +16,7 @@ def recipe_to_fs(recipe: RecipeSpec) -> FS:
         elif "[@o:" in chunk and "]" in chunk:
             i, j = chunk.index("[@"), chunk.index("]")
             arg = chunk[i + 4 : j]
-            args[arg] = f"Observation[{arg}]"
+            args[arg] = f"Observable[{arg}]"
         command.append(chunk.replace(f"[@p:", f"[@").replace(f"[@o:", f"[@"))
     for arg in args.keys():
         for chunk in command:

@@ -1,5 +1,5 @@
-from .experiment import Experiment
+from .experiment import Step
 
 
-class Analysis(Experiment):
+class Analysis(Step):
     pass

@@ -34,7 +34,7 @@
 #         engine=engine_A,
 #         config=ComputationConfig[dict, dict, dict](
 #             inputs=dict(),
-#             observations=dict(),
+#             observables=dict(),
 #             hyperparams=dict(),
 #         ),
 #     )
@@ -64,7 +64,7 @@
 
 #     fetch(collectionA)
 
-#     compare(collectionA, collectionB) # should be comparable, if they have **similar observations**
+#     compare(collectionA, collectionB) # should be comparable, if they have **similar observables**
 
 #     post_analysis
 

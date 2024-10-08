@@ -1,27 +1,18 @@
-from .base import (
-    Category,
-    Engine,
-    Hyperparameter,
-    Model,
-    Observation,
-    OptionalParameter,
-    Parameter,
-    RequiredParameter,
-    Runtime,
-)
+from .base import (Category, Engine, Hyperparameter, Model, Observable,
+                   OptionalParameter, Parameter, RequiredParameter, Runtime)
 from .completions import Completions
-from .experiment import Experiment
+from .experiment import Step
 
 __all__ = [
     "Category",
     "Engine",
     "Hyperparameter",
     "Model",
-    "Observation",
+    "Observable",
     "OptionalParameter",
     "Parameter",
     "RequiredParameter",
     "Runtime",
     "Completions",
-    "Experiment",
+    "Step",
 ]
