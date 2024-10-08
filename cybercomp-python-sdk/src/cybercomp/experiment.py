@@ -1,42 +1,34 @@
 from __future__ import annotations
 
 from itertools import chain, product
-from typing import Sequence
+from typing import Sequence, Set
 
-from .base import Engine, Hyperparameter, Model, Observable, Observation, Parameter, Runnable, Runtime
-from .util_composition import merge_hyperparameters, merge_observables, merge_parameters_and_observables
+from cybercomp.base import ArgSet, RunSet, ObsSet, ObsMap
 
-ArgSet = Sequence[Parameter | Hyperparameter | Observable]
+from .base import ArgSet, Engine, Hyperparameter, Model, Observable, Parameter, Runnable, Runtime
 
 
 def args(
-    parameter_space: Sequence[Sequence[Parameter]],
-    hyperparameter_space: Sequence[Sequence[Hyperparameter]],
-    observables: Sequence[Observable],
+    parameter_space: Sequence[Set[Parameter]],
+    hyperparameter_space: Sequence[Set[Hyperparameter]],
 ) -> Sequence[ArgSet]:
     """
-    Replicate a computational step on discrete samples from
-    a parameter/hyperparameter space.
+    Generate a set of arguments from a given parameter/hyperparameter space
+
+    @param parameter_space: a sequence of parameter sets.
+                            all items have the same set of parameters,
+                            but with different values.
+    @hyperparameter_space:  a sequence of hyperparameter sets.
+                            all items have the same set of hyperparameters,
+                            but with different values.
 
     """
     # cross product of parameter and hyperparameter spaces
     argsets = list[ArgSet]()
     for parameters, hyperparameters in product(parameter_space, hyperparameter_space):
-        argset = [*parameters, *hyperparameters, *observables]
+        argset = [*parameters, *hyperparameters]
         argsets.append(argset)
     return argsets
-
-
-def step(model: Model, engine: Engine, name: str) -> Step:
-    return Step(name, model, engine)
-
-
-def experiment(*steps: Step, name: str) -> Experiment:
-    return Experiment(name, *steps)
-
-
-def replicate(step: Step, *argset: ArgSet, name: str) -> Experiment:
-    return Experiment(name, step).bind(*argset)
 
 
 class Step(Runnable):
@@ -53,64 +45,80 @@ class Step(Runnable):
         self.model = model
         self.engine = engine
 
-    def __rshift__(self, other: Runnable) -> Experiment:
-        if not isinstance(other, Runnable):
-            raise TypeError(f"Unsupported operand type(s) for >>: 'Step' and '{type(other).__name__}'")
-        return Experiment(f"{self.name}>>{other.name}", self, other)
-
-    def run(self, *args: ArgSet, runtime: Runtime) -> bool:
-        return super().run(*args, runtime=runtime)
-
-    def fetch(
-        self, *args: ArgSet, runtime: Runtime, observables: Sequence[Observable]
-    ) -> Sequence[Sequence[Observation]]:
+    def prepare(self, *args: ArgSet) -> Sequence[RunSet]:
+        # TODO correctly implement this
+        return super().prepare(*args)
+    
+    def run(self, *args: RunSet, runtime: Runtime) -> Sequence[bool]:
+        # TODO correctly implement this
+        return [True] * len(args)
+    
+    def fetch(self, *args: RunSet, runtime: Runtime, observables: Sequence[Observable] | None = None) -> Sequence[ObsMap]:
         return super().fetch(*args, runtime=runtime, observables=observables)
 
 
 class Experiment(Runnable):
     """
     A sequence of computational steps where
-    the next step depends on past outputs.
+    each step depends on the previous step(s).
 
     """
-
-    specs: list[ArgSet] = []
 
     def __init__(self, name: str, *steps: Runnable) -> None:
         assert len(steps) > 0
         super().__init__(name)
         self.steps = steps
 
-    def __rshift__(self, other: Step) -> Experiment:
-        if not isinstance(other, Step):
+    def __rshift__(self, other: Experiment) -> Experiment:
+        if not isinstance(other, Experiment):
             raise TypeError(f"Unsupported operand type(s) for >>: 'Experiment' and '{type(other).__name__}'")
-        return Experiment(f"{self.name}>>{other.name}", self, other)
+        return Experiment(f"{self.name}+{other.name}", self, other)
 
     def __str__(self) -> str:
         return f"name=[{self.name}], steps=[" + ">>".join([s.name for s in self.steps]) + "]"
+    
+    def prepare(self, *args: ArgSet) -> Sequence[RunSet]:
+        # TODO correctly implement this
+        from .util_composition import merge_parameters_and_observables
 
-    def bind(self, *args: ArgSet) -> Experiment:
-        """
-        Bind runtime args to the collection
+        # do an independent run for each argset
+        runsets = []
+        for argset in args:
+            # get the globally provided parameters, hyperparameters, and observables
+            P = [c for c in argset if isinstance(c, Parameter)]
+            H = [c for c in argset if isinstance(c, Hyperparameter)]
+            O = []
+            for step in self.steps:
+                # chain these parameters with step-wise P,H,O
+                spec = list(chain(P, H))
+                O = step.run(spec, runtime=runtime)
+                print(f"run [{step.name}] with P={P} H={H}")
+                # merge parameters and observables
+                P = merge_parameters_and_observables(P, O)
+            runsets.append(O)
+        return runsets
 
-        """
-        P, H, O = [], [], []
-        for i, A in enumerate(args):
-            P = merge_parameters_and_observables(P, O, [c for c in A if isinstance(c, Parameter)])
-            H = merge_hyperparameters(H, [c for c in A if isinstance(c, Hyperparameter)])
-            O = merge_observables(O, [c for c in A if isinstance(c, Observable)])
-            spec = list(chain(P, H, O))
-            self.specs.append(spec)
-            print(f"[{self.name}][{i}] {P} {H} {O}")
-        return self
+    def run(self, *args: RunSet, runtime: Runtime) -> Sequence[bool]:
+        # TODO correctly implement this
+        return [True] * len(args)
 
-    def run(self, *args: ArgSet, runtime: Runtime) -> bool:
-        return super().run(*args, runtime=runtime)
-
-    def fetch(
-        self, *args: ArgSet, runtime: Runtime, observables: Sequence[Observable]
-    ) -> Sequence[Sequence[Observation]]:
-        return super().fetch(*args, runtime=runtime, observables=observables)
+    def fetch(self, *args: RunSet, runtime: Runtime, observables: ObsSet | None = None) -> Sequence[ObsMap]:
+        # TODO correctly implement this
+        out = []
+        for argset in args:
+            # get the globally provided parameters, hyperparameters, and observables
+            P = [c for c in argset if isinstance(c, Parameter)]
+            H = [c for c in argset if isinstance(c, Hyperparameter)]
+            O = []
+        for step in self.steps:
+                # chain these parameters with step-wise P,H,O
+                spec = list(chain(P, H))
+                O = step.run(spec, runtime=runtime)
+                print(f"run [{step.name}] with P={P} H={H}")
+                # merge parameters and observables
+                P = merge_parameters_and_observables(P, O)
+            out.append(O)
+        return out
 
 
 # from .exceptions import TypeMismatchError
