@@ -21,15 +21,14 @@ class Step(Runnable):
         self.model = model
         self.engine = engine
 
-    def prepare(self, *args: ArgSet) -> Sequence[RunSet]:
-        # TODO correctly implement this
+    def prepare(self, *args: ArgSet, level: int = 0) -> Sequence[RunSet]:
         out = []
         for argset in args:
-            print(f"step=[{self.name}].prepare(), argset={tostr(argset)}")
+            print(f"[Step] {self.name}.prepare()", tostr("argset", argset))
             # first, ensure that argset satisfy model and engine requirements
             # next, concatenate the argset with model observables and return it
-            (param_req, param_opt, observ) = self.model.describe()
-            hparam = self.engine.describe()
+            (param_req, param_opt, observ) = self.model.describe(level + 1)
+            hparam = self.engine.describe(level + 1)
             print(f"param_req={param_req}, param_opt={param_opt}, observ={observ}, hparam={hparam}")
             out.append(([*param_req, *param_opt], observ))
         return out
@@ -37,7 +36,7 @@ class Step(Runnable):
     def run(self, *args: RunSet, runtime: Runtime) -> Sequence[bool]:
         out = []
         for argset, obsset in args:
-            print(f"step=[{self.name}].run(), argset={tostr(argset)}, obsset={tostr(obsset)}")
+            print(f"[Step] {self.name}.run()", tostr("argset", argset), tostr("obsset", obsset))
             status = runtime.run(self.model, self.engine, argset, obsset)
             out.append(status)
         return out
@@ -45,11 +44,11 @@ class Step(Runnable):
     def fetch(self, *args: RunSet, runtime: Runtime, **_) -> Sequence[ObsMap]:
         out = []
         for argset, obsset in args:
-            print(f"step=[{self.name}].fetch(), argset={tostr(argset)}, obsset={tostr(obsset)}")
+            print(f"[Step] {self.name}.fetch()", tostr("argset", argset), tostr("obsset", obsset))
             obsmap = runtime.fetch(self.model, self.engine, argset, obsset)
             out.append(obsmap)
         return out
-    
+
     def describe(self, level: int = 0) -> None:
         prefix = "  " * level
         print(f"{prefix[:-1]}⮑[Step] {self.name}")
@@ -80,28 +79,28 @@ class Experiment(Runnable):
     def __str__(self) -> str:
         return f"name=[{self.name}], steps=[" + ">>".join([s.name for s in self.steps]) + "]"
 
-    def prepare(self, *args: ArgSet) -> Sequence[RunSet]:
-        # TODO improve this
+    def prepare(self, *args: ArgSet, level: int = 0) -> Sequence[RunSet]:
+        # TODO improve loop structure
         from .util_composition import create_next_argset, create_next_obsset
 
         # do an independent run for each argset
         runsets = list[RunSet]()
-        for argset in args:
-            print(f"experiment=[{self.name}].prepare(), argset={tostr(argset)}")
+        for prev_argset in args:
+            print(f"[Experiment] {self.name}.prepare()")
             # no observations in the beginning
-            obsset = []
+            next_argset = prev_argset
+            prev_obsset = []
             for step in self.steps:
+                prev_argset = next_argset
                 # step_argset is the subset of args that's used by step
-                (step_argset, step_obsset) = step.prepare(argset)[0]
-                next_argset = create_next_argset(argset, step_obsset)
-                next_obsset = create_next_obsset(obsset, step_obsset)
-                # update argset and obsset for the next step
-                argset, obsset = next_argset, next_obsset
+                (step_argset, step_obsset) = step.prepare(prev_argset, level=level + 1)[0]
+                next_argset = create_next_argset(prev_argset, step_obsset)
+                next_obsset = create_next_obsset(prev_obsset, step_obsset)
             # append final runset
-            runsets.append((argset, obsset))
+            runsets.append((prev_argset, next_obsset))
 
         return runsets
-    
+
     def describe(self, level: int = 0) -> None:
         prefix = "  " * level
         print(f"{prefix[:-1]}⮑[Experiment] {self.name}")
@@ -110,28 +109,27 @@ class Experiment(Runnable):
             step.describe(level + 1)
 
     def run(self, *args: RunSet, runtime: Runtime) -> Sequence[bool]:
-        # TODO verify this
+        # TODO improve loop structure
         out = []
         for argset, obsset in args:
-            print(f"experiment=[{self.name}].run(), argset={tostr(argset)}, obsset={tostr(obsset)}")
+            print(f"[Experiment] {self.name}.run()")
             status = True
             for step in self.steps:
-                status = status and step.run((argset, obsset), runtime=runtime)[0]  # TODO iterate correctly
+                status = status and step.run((argset, obsset), runtime=runtime)[0]
                 if not status:
                     raise RuntimeError(f"Failed to run step=[{step.name}]")
             out.append(status)
         return out
 
     def fetch(self, *args: RunSet, runtime: Runtime, observables: ObsQuery | None = None) -> Sequence[ObsMap]:
-        # TODO verify this
         out = list[ObsMap]()
         for argset, obsset in args:
-            print(f"experiment=[{self.name}].fetch(), argset={tostr(argset)}, obsset={tostr(obsset)}")
-            cond = lambda c: True if observables is None else c.typing in observables
+            print(f"[Experiment] {self.name}.fetch()")
+            cond = lambda c: True if observables is None else c in observables
             O = [c for c in obsset if cond(c)]
+            argset_obs = dict()
             for step in self.steps:
-                # TODO verify this
                 result = step.fetch((argset, O), runtime=runtime)[0]
-                # merge parameters and observables
-                out.append(result)
+                argset_obs.update(result)
+            out.append(argset_obs)
         return out

@@ -4,7 +4,10 @@ from abc import ABC, abstractmethod
 from typing import Any, Generic, Mapping, Sequence, TypeVar, get_origin, get_args
 
 T = TypeVar("T", contravariant=True)
-tostr = lambda x: [*map(str, x)]
+
+def tostr(name, x):
+    prefix = "\n  "
+    return "\n" + name + "=[" + prefix + prefix.join([*map(str, x)]) + "\n]"
 
 # --------------------------------------------
 # Base Types
@@ -246,7 +249,7 @@ class Runnable(ABC):
         """
 
     @abstractmethod
-    def prepare(self, *args: ArgSet) -> Sequence[RunSet]:
+    def prepare(self, *args: ArgSet, level: int = 0) -> Sequence[RunSet]:
         """
         Generate run sets for the given arg sets
 

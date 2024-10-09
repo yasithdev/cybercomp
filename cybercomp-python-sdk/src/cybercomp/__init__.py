@@ -8,6 +8,7 @@ from .base import (
     Parameter,
     RequiredParameter,
     Runtime,
+    tostr
 )
 from .completions import Completions
 from .experiment import Step
@@ -24,4 +25,5 @@ __all__ = [
     "Runtime",
     "Completions",
     "Step",
+    "tostr"
 ]

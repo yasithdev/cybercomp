@@ -1,0 +1,7 @@
+description: "update a neuro network for a different neuro configuration"
+required_parameters:
+  neuro_connection_info: "file"
+  neuro_network_config: "file"
+optional_parameters:
+observables:
+  neuro_connection_info: "file"
