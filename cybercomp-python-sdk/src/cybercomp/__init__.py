@@ -1,5 +1,14 @@
-from .base import (Category, Engine, Hyperparameter, Model, Observable,
-                   OptionalParameter, Parameter, RequiredParameter, Runtime)
+from .base import (
+    Category,
+    Engine,
+    Hyperparameter,
+    Model,
+    Observable,
+    OptionalParameter,
+    Parameter,
+    RequiredParameter,
+    Runtime,
+)
 from .completions import Completions
 from .experiment import Step
 

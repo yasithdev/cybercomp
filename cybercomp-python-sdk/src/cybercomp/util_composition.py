@@ -1,12 +1,28 @@
-from typing import Sequence
-
-from .base import Any, Observable, Parameter, TypeVar
+from .base import ArgSet, Hyperparameter, ObsSet, Parameter
 
 
-def merge_parameters_and_observables(P1: Sequence[Parameter], O1: Sequence[Observable]) -> Sequence[Parameter]:
-    out = set[tuple[TypeVar, Any]]()
-    for p1 in P1:
-        out.add((p1.typing, p1.value))
-    for o1 in O1:
-        out.add((o1.typing, o1.value))
-    return [Parameter[t](t, v) for t, v in out]
+def create_next_argset(argset: ArgSet, obsset: ObsSet) -> ArgSet:
+    """
+    Create the next argument set by combining the current argument set with the observable set
+
+    @param argset: the current argument set
+    @param obsset: the observable set
+    @return: the next argument set
+
+    """
+    P = [c for c in argset if isinstance(c, Parameter)]
+    H = [c for c in argset if isinstance(c, Hyperparameter)]
+    next_argset = P + [Parameter(c, None) for c in obsset] + H # TODO substitute none-valued placeholders with generated value
+    return next_argset
+
+
+def create_next_obsset(obsset: ObsSet, new_obsset: ObsSet) -> ObsSet:
+    """
+    Create the next observable set by combining the current observable set with the new observable set
+
+    @param obsset: the current observable set
+    @param new_obsset: the new observable set
+    @return: the next observable set
+
+    """
+    return [*obsset, *new_obsset]
