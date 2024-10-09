@@ -50,13 +50,14 @@ class Step(Runnable):
             out.append(obsmap)
         return out
     
-    def describe(self) -> None:
-        print(f"[Step] {self.name}")
-        print(f"* model={self.model.__class__.__name__}")
-        print(f"* engine={self.engine.__class__.__name__}")
+    def describe(self, level: int = 0) -> None:
+        prefix = "  " * level
+        print(f"{prefix[:-1]}⮑[Step] {self.name}")
+        print(f"{prefix}* model={self.model.__class__.__name__}")
+        print(f"{prefix}* engine={self.engine.__class__.__name__}")
         print()
-        self.model.describe()
-        self.engine.describe()
+        self.model.describe(level + 1)
+        self.engine.describe(level + 1)
 
 
 class Experiment(Runnable):
@@ -101,11 +102,12 @@ class Experiment(Runnable):
 
         return runsets
     
-    def describe(self) -> None:
-        print(f"[Experiment] {self.name}")
+    def describe(self, level: int = 0) -> None:
+        prefix = "  " * level
+        print(f"{prefix[:-1]}⮑[Experiment] {self.name}")
         print()
         for step in self.steps:
-            step.describe()
+            step.describe(level + 1)
 
     def run(self, *args: RunSet, runtime: Runtime) -> Sequence[bool]:
         # TODO verify this

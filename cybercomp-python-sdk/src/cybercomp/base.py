@@ -32,7 +32,7 @@ class Model:
     """
 
     @classmethod
-    def describe(cls) -> tuple[Sequence[type], Sequence[type], Sequence[type]]:
+    def describe(cls, level: int = 0) -> tuple[Sequence[type], Sequence[type], Sequence[type]]:
         """
         Describe the model
 
@@ -52,10 +52,11 @@ class Model:
             if issubclass(origin, Observable):
                 ob.append(k)
                 tob.append(typ[0])
-        print(f"[Model] {cls.__name__}")
-        print(f"* required parameters ({len(rp)}):", rp)
-        print(f"* optional Parameters ({len(op)}):", op)
-        print(f"* observables ({len(ob)}):", ob)
+        prefix = "  " * level
+        print(f"{prefix[:-1]}⮑[Model] {cls.__name__}")
+        print(f"{prefix}* required parameters ({len(rp)}):", rp)
+        print(f"{prefix}* optional Parameters ({len(op)}):", op)
+        print(f"{prefix}* observables ({len(ob)}):", ob)
         print()
         return (trp, top, tob)
 
@@ -67,7 +68,7 @@ class Engine:
     """
 
     @classmethod
-    def describe(cls) -> Sequence[type]:
+    def describe(cls, level: int = 0) -> Sequence[type]:
         """
         Describe the engine
 
@@ -81,8 +82,9 @@ class Engine:
             if issubclass(origin, Hyperparameter):
                 hp.append(k)
                 thp.append(typ[0])
-        print(f"[Engine] {cls.__name__}")
-        print(f"* hyperparameters ({len(hp)}):", hp)
+        prefix = "  " * level
+        print(f"{prefix[:-1]}⮑[Engine] {cls.__name__}")
+        print(f"{prefix}* hyperparameters ({len(hp)}):", hp)
         print()
         return thp
 
@@ -237,7 +239,7 @@ class Runnable(ABC):
         self.name = name
 
     @abstractmethod
-    def describe(self) -> None:
+    def describe(self, level: int = 0) -> None:
         """
         Describe the runnable object
 
