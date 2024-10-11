@@ -1,7 +1,20 @@
 from itertools import product
 from typing import Sequence, Set, TypeVar
 
-from .base import ArgSet, Engine, Hyperparameter, Model, Observable, ObsMap, ObsQuery, Parameter, RunSet, Runtime, T
+from .base import (
+    ArgSet,
+    Engine,
+    Hyperparameter,
+    Model,
+    Observable,
+    ObsMap,
+    ObsQuery,
+    Parameter,
+    RunSet,
+    RunState,
+    Runtime,
+    T,
+)
 from .experiment import Experiment, Step
 
 N = TypeVar("N", int, float)
@@ -134,7 +147,7 @@ def run(
     experiment: Experiment,
     *args: RunSet,
     runtime: Runtime,
-) -> Sequence[bool]:
+) -> Sequence[Sequence[RunState]]:
     """
     Run the experiment with the given run sets
 
@@ -147,11 +160,56 @@ def run(
     return experiment.run(*args, runtime=runtime)
 
 
+def wait_for_completion(
+    experiment: Experiment,
+    *args: RunSet,
+    runtime: Runtime,
+    poll_every_n_secs: int = 2,
+) -> bool:
+    """
+    Block until experiment reaches a final state
+
+    @param experiment: the experiment to run
+    @param args: the run sets to run
+    @param runtime: the runtime to use
+    @return: the run statuses
+
+    """
+    import time
+
+    while True:
+        done = []
+        runsets_state = experiment.poll(*args, runtime=runtime)
+        for runset_state in runsets_state:
+            is_done = all(state in ["COMPLETED", "FAILED"] for state in runset_state)
+            done.append(is_done)
+        if all(done):
+            return True
+        else:
+            time.sleep(poll_every_n_secs)
+
+def poll(
+    experiment: Experiment,
+    *args: RunSet,
+    runtime: Runtime,
+) -> Sequence[Sequence[RunState]]:
+    """
+    Poll the experiment with the given run sets
+
+    @param experiment: the experiment to run
+    @param args: the run sets to run
+    @param runtime: the runtime to use
+    @return: the run statuses
+
+    """
+    return experiment.poll(*args, runtime=runtime)
+
+
 def fetch(
     experiment: Experiment,
     *args: RunSet,
     runtime: Runtime,
-    observables: ObsQuery | None = None,
+    observables: ObsQuery = None,
 ) -> Sequence[ObsMap]:
     """
     Fetch the observables for the given run sets
