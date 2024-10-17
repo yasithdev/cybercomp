@@ -3,53 +3,62 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Extracted Files</title>
-    <style>
-      table {
-        width: 100%;
-        border-collapse: collapse;
-      }
-      table,
-      th,
-      td {
-        border: 1px solid black;
-      }
-      th,
-      td {
-        padding: 10px;
-        text-align: left;
-      }
-    </style>
+    <title>File Browser - Cybercomp</title>
+    {% include 'links.html' %}
   </head>
   <body>
-    <h1>Extracted Files</h1>
-    <form method="post" action="/some_action">
-      <!-- Modify action based on what you want to do -->
-      <table>
-        <thead>
-          <tr>
-            <th>Select</th>
-            <th>File Name</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for file in files %}
-          <tr>
-            <td><input type="checkbox" name="selected_files" value="{{ file }}" /></td>
-            <td><a href="{{ url_for('download', file_path=file) }}">{{ file }}</a></td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      <button type="submit">Submit</button>
-    </form>
-
-    {% with messages = get_flashed_messages() %} {% if messages %}
-    <ul>
-      {% for message in messages %}
-      <li>{{ message }}</li>
-      {% endfor %}
-    </ul>
-    {% endif %} {% endwith %}
+    <nav class="navbar bg-dark mb-3">
+      <div class="container-fluid">
+        <a class="navbar-brand text-light" href="/">Cybercomp</a>
+      </div>
+    </nav>
+    <main class="container w-75 bg-light py-2">
+      <form class="form" method="post" action="/parse">
+        <div class="row">
+          <div class="col col-12 my-1">
+            <h1>File Browser</h1>
+            <h3><pre>{{ base_path }} </pre></h3>
+            <div class="w-100">
+              Browse the files extracted from the uploaded ZIP file. If any file contains parameters or hyperparameters,
+              please annotate them with the appropriate tags.
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col col-12 my-1">
+            <table class="table table-sm mb-0 pb-0">
+              <thead>
+                <tr>
+                  <th style="width: 2em">&nbsp;<input type="checkbox" /></th>
+                  <th style="width: calc(100% - 4em)">File</th>
+                  <th style="width: 2em; text-align: end"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for file, size in files %}
+                <tr>
+                  <td>&nbsp;<input type="checkbox" name="selected_files" value="{{ file }}" /></td>
+                  <td class="w-100">
+                    <div class="d-flex">{{ file }}<small class="ms-auto font-monospace">{{ size }}</small></div>
+                  </td>
+                  <td style="text-align: end">
+                    <a class="btn btn-sm btn-success" href="{{ url_for('annotate', file_path=base_path + '/' + file) }}"
+                      ><i class="fa-solid fa-pencil"></i
+                    ></a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col col-12 my-1">
+            <button class="btn btn-sm btn-primary" type="submit">Submit</button>
+          </div>
+        </div>
+      </form>
+    </main>
+    {% include 'footer.html' %}
   </body>
 </html>

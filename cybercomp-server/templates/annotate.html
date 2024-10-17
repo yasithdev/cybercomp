@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Upload Source Code - Cybercomp</title>
+    {% include 'links.html' %}
+  </head>
+  <body>
+    <nav class="navbar bg-dark mb-3">
+      <div class="container-fluid">
+        <a class="navbar-brand text-light" href="/">Cybercomp</a>
+      </div>
+    </nav>
+    <main class="container w-75 bg-light py-2">
+      <form action="/upload" method="post" enctype="multipart/form-data">
+        <div class="row">
+          <div class="col col-12 my-1">
+            <h1>Annotate File</h1>
+            <h3><pre>{{ file_path }} </pre></h3>
+            <div class="w-100">In the file content, mark the parameters and hyperparameters with appropriate tags.</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col col-12 my-1">
+            <pre
+              id="source_code"
+              class="bg-white w-100 p-3"
+            >{% for index, line in content %}<code id="line_{{index}}">{{ line }}</code>{% endfor %}</pre>
+          </div>
+        </div>
+      </form>
+    </main>
+    <style>
+      #context_menu {
+        display: none;
+        position: absolute;
+        background-color: white;
+        border: 1px solid black;
+        padding: 10px;
+        z-index: 1000;
+      }
+      #context_menu a {
+        display: block;
+        padding: 5px 0;
+        text-decoration: none;
+        color: black;
+      }
+      #context_menu a:hover {
+        background-color: lightgray;
+      }
+    </style>
+    <div id="context_menu">
+      <a href="#">Option 1</a>
+      <a href="#">Option 2</a>
+      <a href="#">Option 3</a>
+    </div>
+    <script>
+      const contextMenu = document.querySelector("#context_menu");
+      const sourceCode = document.querySelector("#source_code");
+
+      sourceCode.addEventListener("mouseup", function (event) {
+        const selection = window.getSelection();
+        if (!selection) {
+          return;
+        }
+        const selectedText = getSelection().toString().trim();
+        if (selectedText) {
+          console.log("text selected", selectedText);
+          // Show the context menu at mouse position
+          contextMenu.style.display = "block";
+          contextMenu.style.left = event.pageX + "px";
+          contextMenu.style.top = event.pageY + "px";
+        } else {
+          console.log("selection cleared", selectedText);
+          contextMenu.style.display = "none";
+        }
+      });
+    </script>
+    {% include 'footer.html' %}
+  </body>
+</html>

@@ -3,21 +3,38 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Upload ZIP File</title>
+    <title>Upload Source Code - Cybercomp</title>
+    {% include 'links.html' %}
   </head>
   <body>
-    <h1>Upload a ZIP file</h1>
-    <form action="/upload" method="post" enctype="multipart/form-data">
-      <input type="file" name="file" accept=".zip" />
-      <button type="submit">Upload</button>
-    </form>
-
-    {% with messages = get_flashed_messages() %} {% if messages %}
-    <ul>
-      {% for message in messages %}
-      <li>{{ message }}</li>
-      {% endfor %}
-    </ul>
-    {% endif %} {% endwith %}
+    <nav class="navbar bg-dark mb-3">
+      <div class="container-fluid">
+        <a class="navbar-brand text-light" href="/">Cybercomp</a>
+      </div>
+    </nav>
+    <main class="container w-50 bg-light py-2">
+      <form action="/upload" method="post" enctype="multipart/form-data">
+        <div class="row">
+          <div class="col col-12 my-1">
+            <h1>Upload Source Code</h1>
+            <div class="w-100">
+              Upload a ZIP file containing your code. Once done, we will extract the contents and let you pick
+              parameters and hyperparameters in it.
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col col-12 my-1">
+            <input class="form-control form-control-sm" type="file" name="file" accept=".zip" />
+          </div>
+        </div>
+        <div class="row">
+          <div class="col col-12 my-1">
+            <button class="btn btn-sm btn-primary" type="submit">Upload</button>
+          </div>
+        </div>
+      </form>
+    </main>
+    {% include 'footer.html' %}
   </body>
 </html>

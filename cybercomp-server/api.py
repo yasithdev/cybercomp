@@ -2,7 +2,8 @@ import io
 import zipfile
 from pathlib import Path
 
-from flask import Flask, flash, jsonify, redirect, render_template, request, url_for, send_from_directory
+from flask import Flask, flash, jsonify, redirect, render_template, request, send_from_directory, url_for
+from humanize import naturalsize
 
 from dataloader import DataLoader
 
@@ -13,6 +14,10 @@ app.secret_key = "supersecretkey"
 
 
 dl = DataLoader()
+
+COLOR_ERROR = "#dc3545"
+COLOR_INFO = "#0dcaf0"
+COLOR_SUCCESS = "#198754"
 
 
 @app.route("/types", methods=["GET"])
@@ -39,11 +44,6 @@ def list_all_sources():
     return jsonify({k: v for k, v in data.items()})
 
 
-@app.route("/status", methods=["GET"])
-def health_check():
-    return jsonify(dict(status=True))
-
-
 @app.route("/", methods=["GET"])
 def index():
     return render_template("index.html")
@@ -54,19 +54,29 @@ def browse(dir_path: str):
     base_path = Path(app.config["UPLOAD_FOLDER"])
     abs_dir_path = base_path / dir_path
     files = list(abs_dir_path.glob("**/*"))
-    filenames = map(lambda x: x.relative_to(base_path).as_posix(), files)
-    return render_template("browse.html", files=filenames)
+    filenames = map(lambda x: x.relative_to(abs_dir_path).as_posix(), files)
+    filesizes = map(lambda x: naturalsize(x.stat().st_size), files)
+    return render_template("browse.html", files=zip(filenames, filesizes), base_path=dir_path)
 
 
 @app.route("/download/<path:file_path>", methods=["GET"])
 def download(file_path: str):
-    return send_from_directory(app.config["UPLOAD_FOLDER"], file_path, as_attachment=True)
+    return send_from_directory(app.config["UPLOAD_FOLDER"], file_path, as_attachment=False)
+
+
+@app.route("/annotate/<path:file_path>", methods=["GET"])
+def annotate(file_path: str):
+    base_path = Path(app.config["UPLOAD_FOLDER"])
+    abs_dir_path = base_path / file_path
+    with open(abs_dir_path, "r") as f:
+        content = list(enumerate(f.readlines()))
+    return render_template("annotate.html", file_path=file_path, content=content)
 
 
 @app.route("/upload", methods=["POST"])
 def upload_file():
     if "file" not in request.files:
-        flash("No file part")
+        flash("No file part", COLOR_ERROR)
         return redirect("/")
 
     file = request.files["file"]
@@ -74,7 +84,7 @@ def upload_file():
     rel_path = Path(file.filename or "")
 
     if rel_path.stem == "":
-        flash("No selected file")
+        flash("No selected file", COLOR_ERROR)
         return redirect("/")
 
     if rel_path.suffix == ".zip":
@@ -83,13 +93,13 @@ def upload_file():
             with zipfile.ZipFile(io.BytesIO(file.read())) as zip_ref:
                 # Extract all files to the specified folder
                 zip_ref.extractall(base_path / rel_path.stem)
-            flash("File successfully uploaded and extracted")
+            flash("File successfully uploaded and extracted", COLOR_SUCCESS)
         except zipfile.BadZipFile:
-            flash("Invalid zip file")
+            flash("Invalid zip file", COLOR_ERROR)
 
         return redirect(f"/browse/{rel_path.stem}")
     else:
-        flash("Invalid file format, only ZIP files are allowed")
+        flash("Invalid file format, only ZIP files are allowed", COLOR_ERROR)
         return redirect("/")
 
 
