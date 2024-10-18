@@ -6,5 +6,5 @@ supported_models:
     command:
       - "apple_config=[@p:sample_apple_config]"
       - "apple=[@o:sample_apple]"
-      - "make"
+      - "chevron"
       - "apple"
