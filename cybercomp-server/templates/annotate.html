@@ -4,24 +4,24 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Upload Source Code - Cybercomp</title>
-    {% include 'links.html' %}
+    {% include 'header.html' %}
   </head>
   <body>
-    <nav class="navbar bg-dark mb-3">
+    <nav class="navbar bg-dark mb-3" style="height: 4em;">
       <div class="container-fluid">
         <a class="navbar-brand text-light" href="/">Cybercomp</a>
       </div>
     </nav>
-    <main class="container w-75 bg-light py-2">
-      <form action="/upload" method="post" enctype="multipart/form-data">
-        <div class="row">
+    <main style="height: calc(100% - 10em);" class="container w-75 bg-light py-2">
+      <form class="h-100" action="/upload" method="post" enctype="multipart/form-data">
+        <div class="row" style="height: 8em;">
           <div class="col col-12 my-1">
             <h1>Annotate File</h1>
             <h3><pre>{{ file_path }} </pre></h3>
             <div class="w-100">In the file content, mark the parameters and hyperparameters with appropriate tags.</div>
           </div>
         </div>
-        <div class="row">
+        <div class="row" style="overflow: scroll; height: calc(100% - 8em);">
           <div class="col col-12 my-1">
             <pre
               id="source_code"
@@ -33,48 +33,93 @@
     </main>
     <style>
       #context_menu {
-        display: none;
         position: absolute;
+        display: none;
+        padding: 5px;
+        border-radius: 5px;
+        border: 1px solid gray;
         background-color: white;
-        border: 1px solid black;
-        padding: 10px;
         z-index: 1000;
       }
       #context_menu a {
         display: block;
-        padding: 5px 0;
+        padding: 5px 0.5em;
+        border-radius: 5px;
         text-decoration: none;
         color: black;
       }
       #context_menu a:hover {
         background-color: lightgray;
       }
+      .highlight-param {
+          background-color: #19875499
+      }
+      .highlight-hparam {
+          background-color: #dc354599
+      }
     </style>
     <div id="context_menu">
-      <a href="#">Option 1</a>
-      <a href="#">Option 2</a>
-      <a href="#">Option 3</a>
+      <a id="mark_param" style="user-select: none">
+        <svg class="rounded me-2" width="1em" height="1em" xmlns="http://www.w3.org/2000/svg" focusable="false">
+          <rect fill="#19875499" width="100%" height="100%"></rect>
+        </svg>
+        <span>Parameter</span>
+      </a>
+      <a id="mark_hparam" style="user-select: none">
+        <svg class="rounded me-2" width="1em" height="1em" xmlns="http://www.w3.org/2000/svg" focusable="false">
+          <rect fill="#dc354599" width="100%" height="100%"></rect>
+        </svg>
+        <span>Hyperparameter</span></a>
     </div>
     <script>
       const contextMenu = document.querySelector("#context_menu");
       const sourceCode = document.querySelector("#source_code");
 
-      sourceCode.addEventListener("mouseup", function (event) {
+      contextMenu.querySelector("#mark_param").addEventListener("click", (event) => {
         const selection = window.getSelection();
-        if (!selection) {
-          return;
+        if (!selection) return;
+        const selectedText = selection.toString().trim();
+        if (selectedText.length > 0) {
+          const range = selection.getRangeAt(0);
+          const span = document.createElement("span");
+          span.className = "highlight-param";
+          range.surroundContents(span);
+          selection.removeAllRanges();
+          contextMenu.style.display = "none";
         }
-        const selectedText = getSelection().toString().trim();
+      });
+
+      contextMenu.querySelector("#mark_hparam").addEventListener("click", (event) => {
+        const selection = window.getSelection();
+        if (!selection) return;
+        const selectedText = selection.toString().trim();
+        if (selectedText.length > 0) {
+          const range = selection.getRangeAt(0);
+          const span = document.createElement("span");
+          span.className = "highlight-hparam";
+          range.surroundContents(span);
+          selection.removeAllRanges();
+          contextMenu.style.display = "none";
+        }
+      });
+
+      const onContextMenuAction = (event) => {
+        const selection = window.getSelection();
+        if (!selection) return;
+        const selectedText = selection.toString().trim();
         if (selectedText) {
-          console.log("text selected", selectedText);
-          // Show the context menu at mouse position
           contextMenu.style.display = "block";
           contextMenu.style.left = event.pageX + "px";
           contextMenu.style.top = event.pageY + "px";
         } else {
-          console.log("selection cleared", selectedText);
           contextMenu.style.display = "none";
         }
+      };
+
+      sourceCode.addEventListener("contextmenu", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        onContextMenuAction(event);
       });
     </script>
     {% include 'footer.html' %}
