@@ -1,8 +1,8 @@
 description: "engine for bazhenov labs neuronal simulations"
-source_id: "sleep-stage-transition"
 engine_parameters:
 supported_models:
   make_network:
+    source_id: "sleep-stage-transition"
     command:
       - "network_config=[@p:neuro_network_config]"
       - "mri_network=[@p:neuro_mri_network]"
@@ -12,10 +12,10 @@ supported_models:
       - "make"
       - "network"
   stim_current:
+    source_id: "sleep-stage-transition"
     command:
       - "current_params=[@p:neuro_current_params]"
       - "connection_info=[@p:neuro_connection_info]"
       - "current_stim=[@o:neuro_current_stim]"
       - "make"
       - "mindcurrent"
-# example - for deep learning, engine could be pytorch

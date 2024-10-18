@@ -1,0 +1,10 @@
+description: "string substitutor for mustache-templated source files"
+engine_parameters:
+supported_models:
+  substitute_vars:
+    source_id: "sleep-stage-transition"
+    command:
+      - "apple_config=[@p:sample_apple_config]"
+      - "apple=[@o:sample_apple]"
+      - "make"
+      - "apple"

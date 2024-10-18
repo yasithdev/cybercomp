@@ -157,7 +157,7 @@ class Completions:
                 class_name=engine_id,
                 class_bases=["Engine"],
                 docstring=engine.description,
-                fixed_params={"source_id": ("str", engine.source_id)},
+                fixed_params={},
                 fixed_typeless_params=params,
                 functions={k: recipe_to_fs(v) for k, v in engine.supported_models.items()},
             )

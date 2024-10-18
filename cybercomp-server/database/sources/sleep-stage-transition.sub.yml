@@ -1,0 +1,232 @@
+- file: generate_network.cpp
+  params:
+    MAX_SUBNET_POINTS: 12500
+
+- file: main.cpp
+  params:
+    s2_scale: 1.2
+    s3_scale: 1.8
+    rem_scale: 0.9
+
+    gkl_awake: 0.19
+    gkl_awake_fix: 0.19
+    gkl_TC_awake: 0.79
+    gkl_TC_awake_fix: 0.79
+    gkl_RE_awake: 0.9
+    gkl_RE_awake_fix: 0.9
+
+    awake_AMPAd2: 0.2
+    awake_AMPAd2_fix: 0.2
+
+    gh_TC_awake: -8.0
+    gh_TC_s2: -3.0
+    gh_TC_s3: -2.0
+    gh_TC_rem: 0.0
+
+    awake_GABAd2: 0.22
+    awake_GABAd2_fix: 0.22
+    awake_GABA_TC: 0.55
+    awake_GABA_TC_fix: 0.55
+
+    awake_AMPA_TC: 0.5
+
+    s2_AMPA_TC: 0.5
+    s3_AMPA_TC: 0.5
+
+    rem_AMPA_TC: 0.5
+
+    gk_cx_slow_awake: 1.0
+    gk_cx_slow_s2: 1.0
+    gk_cx_slow_s3: 1.0
+    gk_cx_slow_rem: 1.0
+    gk_cx_spike_awake: 1.0
+    gk_cx_spike_s2: 1.0
+    gk_cx_spike_s3: 1.0
+
+- file: CellSyn.h
+  params:
+    I_HH: 1
+
+    N_RE: 7
+    N_TC: 12
+    N_GB: 2
+    N_TCa: 12
+    N_DEND_1: 9
+    N_SOMA: 4
+
+    TAU: 0.02
+    TAU_Map: 0.5
+    TAUr: 25
+
+    RE_E_l: -77
+    RE_G_Ca: 2.2
+    RE_G_kl: 0.012
+
+    GABA_A_E_GABA: -70
+
+    TCcore_G_A: 0
+    TCcore_ginc: 2.0
+    TCcore_E_l: -70
+    TCcore_G_Ca: 2.5
+    TCcore_D: 2
+    TCcore_pc: 0.007
+    TCcore_k4: 0.001
+    TCcore_Vtr: -40
+    TCcore_VtrK: -28
+    TCcore_G_K: 12
+    TCcore_G_h: 0.016
+    TCcore_G_kl: 0.024
+    TCcore_DC: 0
+
+    TCcore_memory_E_GABA: -83
+    TCcore_memory_GB_K1: 0.5
+    TCcore_memory_GB_K2: 0.0012
+    TCcore_memory_GB_K3: 0.1
+    TCcore_memory_GB_K4: 0.034
+
+    TCmatrix_G_A: 0
+    TCmatrix_ginc: 2
+    TCmatrix_E_l: -70
+    TCmatrix_G_Ca: 2.2
+    TCmatrix_D: 2
+    TCmatrix_pc: 0.007
+    TCmatrix_k4: 0.001
+    TCmatrix_Vtr: -40
+    TCmatrix_VtrK: -28
+    TCmatrix_G_K: 12
+    TCmatrix_G_h: 0.015
+    TCmatrix_G_kl: 0.025
+    TCmatrix_DC: 0
+
+    TCmatrix_memory_E_GABA: -83
+    TCmatrix_memory_GB_K1: 0.5
+    TCmatrix_memory_GB_K2: 0.0012
+    TCmatrix_memory_GB_K3: 0.1
+    TCmatrix_memory_GB_K4: 0.034
+
+    CXsyn_G_kl: 0.011
+    CXsyn_E_l: -67.0
+    CXsyn_G_Km: 0.02
+    CXsyn_G_l: 0.011
+
+    CXasyn_G_kl: 0.01
+    CXasyn_E_l: -68
+    CXasyn_G_Km: 0.02
+    CXasyn_G_l: 0.022
+
+    CXsyn6_G_kl: 0.01
+    CXsyn6_E_l: -68
+    CXsyn6_G_Km: 0.02
+    CXsyn6_G_l: 0.022
+
+    INsynCore_rho: 50
+    INsynCore_DEND_G_Nap: 0.0
+    INsynCore_SOMA_G_Nap: 0.0
+    INsynCore_SOMA_G_Na: 2500
+    INsynCore_E_l: -75
+    INsynCore_G_Km: 0.02
+    INsynCore_G_Kl: 0.009
+    INsynCore_G_l: 0.009
+
+    INsynMatrix_rho: 50
+    INsynMatrix_DEND_G_Nap: 0.0
+    INsynMatrix_SOMA_G_Nap: 0.0
+    INsynMatrix_SOMA_G_Na: 2500
+
+    INsyn6_rho: 50
+    INsyn6_DEND_G_Nap: 0.0
+    INsyn6_SOMA_G_Nap: 0.0
+    INsyn6_SOMA_G_Na: 2500
+
+- file: currents.h
+  params:
+    RS_HHH: 0.02
+    RS_mu: 0.0005
+    RS_spike: 0
+    RS_alpha: 3.65
+    RS_sigma: 0.02
+    RS_sigma_e: 1.0
+    RS_sigma_dc: 1.0
+    RS_beta_e: 0.133
+    RS_beta_dc: 0.133
+    RS_Idc: 0
+    RS_S_CX_DEND: 165.0e-6
+    RS_Tcr: -100
+    RS_v_DEND: -60
+    RS_v_SOMA: -60
+
+    FS1_ii: 0
+    FS1_mu: 0.002
+    FS1_spike: 0
+    FS1_alpha: 3.8
+    FS1_sigma: -1.75E-2
+    FS1_sigma_e: 0.5
+    FS1_sigma_dc: 1.0
+    FS1_beta_e: 0.05
+    FS1_beta_dc: 0.1
+    FS1_Idc: -0.
+    FS1_S_CX_DEND: 165.0e-6
+    FS1_gg: 0.5
+    FS1_beta_ii: 0.5
+    FS1_sigma_ii: 0.5
+    FS1_Tcr: -100
+    FS1_v_DEND: -60
+    FS1_v_SOMA: -60
+
+    IT_RE_G_Ca: 1.75
+    IT_RE_Qm: 5
+    IT_RE_Qh: 3
+
+    INaK_G_K: 10
+    INaK_G_Na: 100
+    INaK_Vtr: -50
+    INaK_VtrK: -50
+
+    Ih_TC_G_h: 0.02
+    Ih_TC_ginc: 1.5
+    Ih_TC_cac: 0.0015
+    Ih_TC_pc: 0.01
+    Ih_TC_k3: 0.001
+
+    IA_TC_G_A: 1
+
+    IHVA_CX_G_HVA: 0.03
+    
+    IKCa_CX_G_KCa: 0.3
+
+    IKm_CX_G_Km: 0.01
+
+    IKv_CX_G_Kv: 150
+
+    INa_CX_G_Na: 3000
+
+    INap_CX_G_Nap: 2
+    INap_CX_Tet: -42
+    INap_CX_Sig: 5
+    INap_CX_f: 0.02
+    INap_CX_Cels: 36
+    INap_CX_Q10: 2.7
+
+    GABA_A_old_v: 0
+    GABA_A_E_GABA: -70
+    GABA_A_R: 0
+    GABA_A_C: 0
+    GABA_A_R0: 0
+    GABA_A_R1: 0
+    GABA_A_Alpha: 10.5
+    GABA_A_Beta: 0.166
+    GABA_A_lastrelease: -100
+
+    GABA_B_old_v: 0
+    GABA_B_Cdur: 0.3
+    GABA_B_K1: 0.52
+    GABA_B_K2: 0.0013
+    GABA_B_K3: 0.098
+    GABA_B_K4: 0.033
+    GABA_B_lastrelease: -10000000
+    GABA_B_C: 0
+    GABA_B_r0: 0
+    GABA_B_g0: 0
+    
+    GB_lastrelease: -10000000
+    GB_C: 0

@@ -36,7 +36,7 @@ class RecipeSpec(BaseModel):
     Specification for a recipe to run a (model, experiment) pair
 
     """
-
+    source_id: str
     command: list[str]
 
 
@@ -47,7 +47,6 @@ class EngineSpec(BaseModel):
     """
 
     description: str
-    source_id: str
     engine_parameters: dict[str, str]
     supported_models: dict[str, RecipeSpec]
 

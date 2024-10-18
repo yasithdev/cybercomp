@@ -98,10 +98,13 @@ def generate_class_py(
     for function_name, func in functions.items():
         function_args = func.args
         function_command = func.command
+        function_src = func.source_id
         function_rtype = func.rtype
         function_args_ast = [
             ast.arg(arg=arg, annotation=ast.Name(id=typ, ctx=ast.Load())) for arg, typ in function_args.items()
         ]
+        source_id_arg = ast.arg(arg="source_id", annotation=ast.Name(id="str", ctx=ast.Load()))
+        source_id_val = ast.Constant(value=function_src)
 
         # Add return statement
         if function_rtype:
@@ -130,12 +133,12 @@ def generate_class_py(
         function_def = ast.FunctionDef(
             name=function_name,
             args=ast.arguments(
-                args=[ast.arg(arg="self", annotation=None)] + function_args_ast,
+                args=[ast.arg(arg="self", annotation=None)] + function_args_ast + [source_id_arg],
                 vararg=None,
                 kwonlyargs=[],
                 kw_defaults=[],
                 kwarg=None,
-                defaults=[],
+                defaults=[source_id_val],
             ),  # type: ignore
             body=[ast.Return(ast.List(elts=function_elts, ctx=ast.Load()))],
             decorator_list=[],
