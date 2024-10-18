@@ -2,5 +2,5 @@ __pycache__/
 .DS_Store
 .ipynb_checkpoints
 uploads/
-database/sourcess
+database/sources
 database/targets
