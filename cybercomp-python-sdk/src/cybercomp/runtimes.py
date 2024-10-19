@@ -28,6 +28,7 @@ class LocalRuntime(Runtime):
         print(f"engine={engine}")
         print(tostr("argset", argset))
         print(tostr("obsset", obsset))
+        
         return "QUEUED"
     
     def poll(self, model: Model, engine: Engine, argset: ArgSet, obsset: ObsSet) -> RunState:
