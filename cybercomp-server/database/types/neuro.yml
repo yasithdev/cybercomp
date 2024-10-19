@@ -1,3 +1,6 @@
+code:
+  description: "executable source code"
+  form: "file"
 network_config:
   description: "path to network_config file"
   form: file

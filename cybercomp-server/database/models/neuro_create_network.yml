@@ -1,5 +1,6 @@
 description: "derive connections of a given brain network"
 required_parameters:
+  neuro_code: "file"
   neuro_network_config: "file"
 optional_parameters:
   neuro_mri_network: "file"

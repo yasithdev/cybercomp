@@ -4,7 +4,7 @@ supported_models:
   make_apples:
     source_id: "sample"
     command:
-      - "apple_config=[@p:sample_apple_config]"
+      - "config=[@p:sample_config]"
       - "apple=[@o:sample_apple]"
       - "make"
       - "apple"

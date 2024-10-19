@@ -2,10 +2,12 @@ import io
 import zipfile
 from pathlib import Path
 
-from flask import Flask, flash, jsonify, redirect, render_template, request, send_from_directory, url_for
+from flask import (Flask, flash, jsonify, redirect, render_template, request,
+                   send_from_directory, url_for)
 from humanize import naturalsize
 
 from dataloader import DataLoader
+from sub import substitute_all
 
 app = Flask(__name__)
 app.config["UPLOAD_FOLDER"] = "uploads/"
@@ -47,6 +49,15 @@ def list_all_sources():
 @app.route("/", methods=["GET"])
 def index():
     return render_template("index.html")
+
+
+@app.route("/sub", methods=["POST"])
+def sub():
+    data = request.get_json()
+    source_id = data["source_id"]
+    args = data["args"]
+    substitute_all(source_id, args)
+    return jsonify({"status": "OK"})
 
 
 @app.route("/browse/<dir_path>", methods=["GET"])

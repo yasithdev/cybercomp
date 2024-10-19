@@ -1,10 +1,13 @@
 description: "string substitutor for mustache-templated source files"
 engine_parameters:
+  source_id: "str"
 supported_models:
   substitute_vars:
     source_id: "sleep-stage-transition"
     command:
-      - "apple_config=[@p:sample_apple_config]"
+      - "cd [@p:neuro_code];"
+      - "python -m cybercomp.sub"
+      - "apple_config=[@p:sample_config]"
       - "apple=[@o:sample_apple]"
       - "chevron"
       - "apple"

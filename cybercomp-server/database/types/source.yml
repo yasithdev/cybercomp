@@ -1,12 +1,9 @@
-template:
-  description: "input source code template"
+id:
+  description: "unique identifier for source code"
   form: "file"
 defaults:
   description: "default vars to substitute in source code"
   form: "file"
 overrides:
   description: "overrides for default vars in source code"
-  form: "file"
-code:
-  description: "output source code with vars substituted"
   form: "file"

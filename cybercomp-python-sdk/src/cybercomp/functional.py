@@ -142,14 +142,13 @@ def prepare(
     """
     return experiment.prepare(*args)
 
-
-def run(
+def begin_run(
     experiment: Experiment,
     *args: RunSet,
     runtime: Runtime,
 ) -> Sequence[Sequence[RunState]]:
     """
-    Run the experiment with the given run sets
+    Begin running the experiment with the given run sets
 
     @param experiment: the experiment to run
     @param args: the run sets to run
@@ -204,6 +203,24 @@ def poll(
     """
     return experiment.poll(*args, runtime=runtime)
 
+def run(
+    experiment: Experiment,
+    *args: ArgSet,
+    runtime: Runtime,
+):
+    """
+    Run the experiment with the given run sets and wait for completion
+
+    @param experiment: the experiment to run
+    @param args: the run sets to run
+    @param runtime: the runtime to use
+    @return: the run statuses
+
+    """
+    runsets = prepare(experiment, *args)
+    begin_run(experiment, *runsets, runtime=runtime)
+    wait_for_completion(experiment, *runsets, runtime=runtime)
+    return experiment, *runsets
 
 def fetch(
     experiment: Experiment,

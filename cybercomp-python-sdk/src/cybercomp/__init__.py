@@ -10,7 +10,7 @@ from .base import (
     Runtime,
     tostr
 )
-from .completions import Completions
+from .service import API
 from .experiment import Step
 
 __all__ = [
@@ -23,7 +23,7 @@ __all__ = [
     "Parameter",
     "RequiredParameter",
     "Runtime",
-    "Completions",
+    "API",
     "Step",
     "tostr"
 ]

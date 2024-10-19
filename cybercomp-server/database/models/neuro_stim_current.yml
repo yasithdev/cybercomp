@@ -1,5 +1,6 @@
 description: "stimulate a current on a brain connection"
 required_parameters:
+  neuro_code: "file"
   neuro_current_params: "file"
   neuro_connection_info: "file"
 optional_parameters:

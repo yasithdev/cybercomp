@@ -4,16 +4,17 @@ supported_models:
   make_network:
     source_id: "sleep-stage-transition"
     command:
+      - "cd [@p:neuro_code];"
       - "network_config=[@p:neuro_network_config]"
       - "mri_network=[@p:neuro_mri_network]"
       - "3D_subnet=[@p:neuro_3D_subnet]"
       - "3D_distance=[@p:neuro_3D_distance]"
       - "connection_info=[@o:neuro_connection_info]"
-      - "make"
-      - "network"
+      - "make network"
   stim_current:
     source_id: "sleep-stage-transition"
     command:
+      - "cd [@p:neuro_code];"
       - "current_params=[@p:neuro_current_params]"
       - "connection_info=[@p:neuro_connection_info]"
       - "current_stim=[@o:neuro_current_stim]"

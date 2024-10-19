@@ -1,5 +1,5 @@
-apple_config:
-  description: "path to apple_config file"
+config:
+  description: "path to config file"
   form: file
 apple:
   description: "path to apple file"

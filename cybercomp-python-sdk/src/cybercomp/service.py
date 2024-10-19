@@ -14,9 +14,9 @@ from .specs import EngineSpec, ModelSpec, SourceSpec, TypeSpec, primitives
 from .util_recipes import recipe_to_fs
 
 
-class Completions:
+class API:
     """
-    Autocompletion Generator that generates Python objects on-demand
+    API that connects to running cybercomp server
 
     """
 
@@ -79,8 +79,14 @@ class Completions:
 
         # generate a single types stub
         typedefs = dict[str, str]()
+        import builtins
+
         for k, v in self.types.items():
-            typedefs[k] = f"TypeVar('{k}', {primitives[v.form]}, {primitives[v.form]})"
+            typ = v.form
+            if v.form in primitives:
+                typ = primitives[v.form]
+            assert hasattr(builtins, typ), f"'{typ}' is not a primitive type"
+            typedefs[k] = f"TypeVar('{k}', {typ}, {typ})"
 
         code = generate_module(imports=[("typing", "TypeVar")], typedefs=typedefs)
         code = black.format_str(code, mode=black.Mode())
