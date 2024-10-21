@@ -1,0 +1,18 @@
+description: "evaluate model performance at a layer through probing"
+
+parameters:
+  model: { type: "path" }
+  dataset: { type: "path" }
+  layer_id: { type: "string" }
+  metric: { type: "string", default: "acc" }
+
+observables:
+  performance: { type: "numeric" }
+
+run:
+  engine:
+    - bash
+    - python
+  command: "
+    echo 'executed';
+    "

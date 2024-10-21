@@ -26,7 +26,6 @@ class DataLoader:
     """
 
     db_dir = Path(__file__).parent / "database"
-    types_dir = db_dir / "types"
     models_dir = db_dir / "models"
     engines_dir = db_dir / "engines"
     sources_dir = db_dir / "sources"
@@ -36,27 +35,32 @@ class DataLoader:
         self.engines_dir.mkdir(parents=True, exist_ok=True)
         self.models_dir.mkdir(parents=True, exist_ok=True)
         self.sources_dir.mkdir(parents=True, exist_ok=True)
-        self.types_dir.mkdir(parents=True, exist_ok=True)
 
     def get_all_types(self) -> dict[str, TypeSpec]:
+        models = self.get_all_models()
+        engines = self.get_all_engines()
         types = dict[str, TypeSpec]()
-        for fp in self.types_dir.glob("*.yml"):
-            key = fp.stem
-            print("[Type]", key)
-            c = CategorySpec(**{k: TypeSpec(**v) for k, v in load_yaml(fp).items()})
-            # prefix each type with its category
-            for k, v in c.items():
-                types[f"{key}_{k}"] = v
+        # TODO add key as prefix to each type
+        for key, v in models.items():
+            types.update(v.parameters)
+        for key, v in engines.items():
+            types.update(v.parameters)
+        # for fp in self.types_dir.glob("*.yml"):
+        #     key = fp.stem
+        #     print("[Type]", key)
+        #     c = CategorySpec(**{k: TypeSpec(**v) for k, v in load_yaml(fp).items()})
+        #     # prefix each type with its category
+        #     for k, v in c.items():
+        #         types[f"{key}_{k}"] = v
         return types
 
     def get_all_models(self) -> dict[str, ModelSpec]:
-        types = self.get_all_types()
         models = dict[str, ModelSpec]()
-        for fp in self.models_dir.glob("*.yml"):
-            key = fp.stem
+        for fp in self.models_dir.glob("*/*.yml"):
+            key = f"{fp.parent.stem}_{fp.stem}"
+            fp.parent.stem
             print("[Model]", key)
-            m = ModelSpec(**load_yaml(fp, dict(optional_parameters={})))
-            m.validate(types)
+            m = ModelSpec(**load_yaml(fp))
             models[key] = m
         return models
 
@@ -65,14 +69,14 @@ class DataLoader:
         for fp in self.engines_dir.glob("*.yml"):
             key = fp.stem
             print("[Engine]", key)
-            e = EngineSpec(**load_yaml(fp, dict(engine_parameters={})))
+            e = EngineSpec(**load_yaml(fp, dict(parameters={})))
             engines[key] = e
         return engines
 
     def list_all_sources(self) -> dict[str, SourceSpec]:
         sources = dict[str, str]()
         for fp in self.sources_dir.glob("*"):
-            key = fp.stem
+            key = f"{fp.parent.stem}_{fp.stem}"
             print("[Source]", key)
             s = SourceSpec(fp.as_posix())
             sources[key] = s

@@ -1,0 +1,17 @@
+description: "create 'hello' and 'world' files"
+
+parameters:
+  hello: { type: "string", default: "hello" }
+  world: { type: "string", default: "world" }
+
+observables:
+  hello: { type: "path" }
+  world: { type: "path" }
+
+run:
+  engine:
+    - bash
+  command: "
+    echo {{parameters.hello}} > {{observables.hello}};
+    echo {{parameters.world}} > {{observables.world}};
+    "

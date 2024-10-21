@@ -9,8 +9,12 @@
 			"path": "cybercomp-python-sdk"
 		},
 		{
-			"name": "examples",
-			"path": "examples"
+			"name": "demos",
+			"path": "demos"
+		},
+		{
+			"name": "misc",
+			"path": "misc"
 		},
 		{
 			"name": "cybercompute",

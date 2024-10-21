@@ -9,24 +9,29 @@ import yaml
 
 
 class Template(pydantic.BaseModel):
+    """
+    Template Model
+
+    """
+
     file: str
-    args: dict[str, Any]
+    params: dict[str, Any]
 
 
 def substitute_single(
-    file: Path,
+    source_file: Path,
     defaults: dict[str, Any],
     args: dict[str, Any] = {},
 ) -> str:
     """
     Substitute a single template file with given arguments.
 
-    @param file: Path to the template file
+    @param source_file: Path to the template file
     @param defaults: Default arguments to substitute
     @args: Override arguments to substitute
 
     """
-    with open(file) as f:
+    with open(source_file) as f:
         template = f.read()
     sub_params = defaults.copy()
     sub_params.update(args)
@@ -34,13 +39,17 @@ def substitute_single(
 
 
 def substitute_all(
-    source_id: str,
+    source_dir: Path,
+    target_dir: Path,
     args: dict[str, Any],
 ) -> None:
-    # define base_dir and target_dir based on source_id
-    db_dir = Path("database")
-    source_dir = db_dir / "sources" / source_id
-    target_dir = db_dir / "targets" / source_id
+    """
+    Substitute all templates in a source directory with given arguments.
+
+    @source_id: Id of the source directory
+    @args: Arguments to substitute
+
+    """
 
     # copy source_dir to target_dir
     shutil.rmtree(target_dir, ignore_errors=True)
@@ -79,4 +88,10 @@ if __name__ == "__main__":
             args = yaml.safe_load(f)
         for k, v in args.items():
             print(f"[Param] {k}: {v}")
-    substitute_all(source_id, args)
+
+    # define base_dir and target_dir based on source_id
+    db_dir = Path("database")
+    source_dir = db_dir / "sources" / source_id
+    target_dir = db_dir / "targets" / source_id
+
+    substitute_all(source_dir, target_dir, args)

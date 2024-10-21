@@ -1,0 +1,19 @@
+description: "train a ML model"
+
+parameters:
+  model: { type: "path" }
+  dataset: { type: "path" }
+  train_epochs: { type: "numeric", default: 100 }
+  train_optimizer: { type: "string", default: "adam" }
+  train_scheduler: { type: "string", default: "constant" }
+
+observables:
+  model: { type: "path" }
+
+run:
+  engine:
+    - bash
+    - python
+  command: "
+    echo 'executed';
+    "

@@ -10,7 +10,7 @@ import black
 from requests import get
 
 from .codegen import generate_class_py, generate_module
-from .specs import EngineSpec, ModelSpec, SourceSpec, TypeSpec, primitives
+from .specs import EngineSpec, ModelSpec, SourceSpec, TypeSpec, get_canonical_type
 from .util_recipes import recipe_to_fs
 
 
@@ -82,9 +82,7 @@ class API:
         import builtins
 
         for k, v in self.types.items():
-            typ = v.form
-            if v.form in primitives:
-                typ = primitives[v.form]
+            typ = get_canonical_type(v.type)
             assert hasattr(builtins, typ), f"'{typ}' is not a primitive type"
             typedefs[k] = f"TypeVar('{k}', {typ}, {typ})"
 
@@ -104,10 +102,11 @@ class API:
             fp = model_dir / f"{model_id}.py"
 
             params = dict[str, str]()
-            for k in model.required_parameters:
-                params[k] = f"RequiredParameter[{k}]"
-            for k in model.optional_parameters:
-                params[k] = f"OptionalParameter[{k}]"
+            for k, v in model.parameters.items():
+                if v is None:
+                    params[k] = f"RequiredParameter[{k}]()"
+                else:
+                    params[k] = f"OptionalParameter[{k}](v)"
             for k in model.observables:
                 params[k] = f"Observable[{k}]"
 
@@ -123,6 +122,7 @@ class API:
                 class_bases=["Model"],
                 docstring=model.description,
                 fixed_typeless_params=params,
+                # functions={"__call__": recipe_to_fs(model.run)} # TODO fix this
             )
             code = black.format_str(code, mode=black.Mode())
             with open(fp, "w") as f:
@@ -148,7 +148,7 @@ class API:
             fp = engine_dir / f"{engine_id}.py"
 
             params = dict[str, str]()
-            for k in engine.engine_parameters:
+            for k in engine.parameters:
                 params[k] = f"Hyperparameter[{k}]"
 
             code = generate_class_py(
@@ -165,7 +165,6 @@ class API:
                 docstring=engine.description,
                 fixed_params={},
                 fixed_typeless_params=params,
-                functions={k: recipe_to_fs(v) for k, v in engine.supported_models.items()},
             )
             code = black.format_str(code, mode=black.Mode())
             with open(fp, "w") as f:

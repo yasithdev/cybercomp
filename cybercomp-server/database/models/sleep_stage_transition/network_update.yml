@@ -1,0 +1,22 @@
+description: "update a neuro network to a different configuration"
+
+parameters:
+  code: { type: "path" }
+  network_config: { type: "path" }
+  connection_info: { type: "path" }
+
+observables:
+  connection_info: { type: "path" }
+
+run:
+  engine:
+    - bash
+    - python
+  command: "
+    cd {{parameters.code}};
+
+    python change_connFile.py
+    {{parameters.network_config}}
+    {{parameters.connection_info}}
+    {{observables.connection_info}}
+    "

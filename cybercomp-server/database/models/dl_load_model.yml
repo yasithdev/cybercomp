@@ -1,7 +1,0 @@
-description: "retrieve a ML model"
-required_parameters:
-  dl_model_name: "file"
-optional_parameters:
-  dl_model_weights: "file"
-observables:
-  dl_model: "file"

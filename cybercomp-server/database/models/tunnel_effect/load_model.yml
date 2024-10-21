@@ -1,0 +1,16 @@
+description: "retrieve a ML model"
+
+parameters:
+  model_name: { type: "path" }
+  model_weights: { type: "path", default: "" }
+
+observables:
+  model: { type: "path" }
+
+run:
+  engine:
+    - bash
+    - python
+  command: "
+    echo 'executed';
+    "

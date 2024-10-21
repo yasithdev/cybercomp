@@ -1,0 +1,15 @@
+description: "retrieve a ML dataset"
+
+parameters:
+  dataset_name: { type: "path" }
+
+observables:
+  dataset: { type: "path" }
+
+run:
+  engine:
+    - bash
+    - python
+  command: "
+    echo 'executed';
+    "

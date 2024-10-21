@@ -2,8 +2,7 @@ import io
 import zipfile
 from pathlib import Path
 
-from flask import (Flask, flash, jsonify, redirect, render_template, request,
-                   send_from_directory, url_for)
+from flask import Flask, flash, jsonify, redirect, render_template, request, send_from_directory
 from humanize import naturalsize
 
 from dataloader import DataLoader
@@ -86,11 +85,11 @@ def annotate(file_path: str):
 
 @app.route("/upload", methods=["POST"])
 def upload_file():
-    if "file" not in request.files:
+    if "path" not in request.files:
         flash("No file part", COLOR_ERROR)
         return redirect("/")
 
-    file = request.files["file"]
+    file = request.files["path"]
     base_path = Path(app.config["UPLOAD_FOLDER"])
     rel_path = Path(file.filename or "")
 

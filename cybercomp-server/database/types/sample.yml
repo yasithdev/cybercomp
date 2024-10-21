@@ -1,9 +1,0 @@
-config:
-  description: "path to config file"
-  form: file
-apple:
-  description: "path to apple file"
-  form: file
-orange:
-  description: "path to orange file"
-  form: file

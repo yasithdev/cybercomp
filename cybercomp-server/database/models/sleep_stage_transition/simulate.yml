@@ -1,0 +1,53 @@
+description: "stimulate a current on a brain connection"
+
+parameters:
+  code: { type: "path" }
+  current_params: { type: "path" }
+  connection_info: { type: "path" }
+
+observables:
+  cx_cx_g_ampa0: { type: "path", default: "out/cx_cx_g_ampa0" }
+  dat: { type: "path", default: "out/dat" }
+  field_file_0: { type: "path", default: "out/field_file_0" }
+  field_file_1: { type: "path", default: "out/field_file_1" }
+  field_file_2: { type: "path", default: "out/field_file_2" }
+  field_file_3: { type: "path", default: "out/field_file_3" }
+  field_file_4: { type: "path", default: "out/field_file_4" }
+  field_file_5: { type: "path", default: "out/field_file_5" }
+  field_file_6: { type: "path", default: "out/field_file_6" }
+  field_file_7: { type: "path", default: "out/field_file_7" }
+  graf_cx: { type: "path", default: "out/graf_cx" }
+  graf_cx6: { type: "path", default: "out/graf_cx6" }
+  graf_cxa: { type: "path", default: "out/graf_cxa" }
+  graf_in: { type: "path", default: "out/graf_in" }
+  graf_in6: { type: "path", default: "out/graf_in6" }
+  graf_ina: { type: "path", default: "out/graf_ina" }
+  graf_re: { type: "path", default: "out/graf_re" }
+  graf_tc: { type: "path", default: "out/graf_tc" }
+  graf_tca: { type: "path", default: "out/graf_tca" }
+  time_cx: { type: "path", default: "out/time_cx" }
+  time_cx6: { type: "path", default: "out/time_cx6" }
+  time_cxa: { type: "path", default: "out/time_cxa" }
+  time_G_AMPA0_CX_CX: { type: "path", default: "out/time_G_AMPA0_CX_CX" }
+  time_G_AMPA0_CX_CXa: { type: "path", default: "out/time_G_AMPA0_CX_CXa" }
+  time_G_AMPA0_CXa_CX: { type: "path", default: "out/time_G_AMPA0_CXa_CX" }
+  time_G_AMPA0_CXa_CXa: { type: "path", default: "out/time_G_AMPA0_CXa_CXa" }
+  time_in: { type: "path", default: "out/time_in" }
+  time_in6: { type: "path", default: "out/time_in6" }
+  time_ina: { type: "path", default: "out/time_ina" }
+  time_re: { type: "path", default: "out/time_re" }
+  time_tc: { type: "path", default: "out/time_tc" }
+  time_tca: { type: "path", default: "out/time_tca" }
+
+run:
+  engine:
+    - bash
+    - cpp
+  command: "
+    cd {{parameters.code}};
+
+    current_params={{parameters.current_params}}
+    connection_info={{parameters.connection_info}}
+
+    make mindcurrent
+    "

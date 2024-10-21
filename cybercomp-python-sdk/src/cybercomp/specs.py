@@ -1,20 +1,30 @@
-from pydantic import BaseModel
+from typing import Any
+
+from pydantic import BaseModel, Field
 
 primitives = dict(
-    file="str",
-    binary="str",
-    archive="str",
+    path="str",
+    string="str",
+    env="str",
+    numeric="float",
 )
+
+
+def get_canonical_type(v: str) -> str:
+    typ = v
+    if v in primitives:
+        typ = primitives[v]
+    return typ
 
 
 class TypeSpec(BaseModel):
     """
-    Specification for a semantic type
+    Specification for an argument with a type and optional default
 
     """
 
-    description: str
-    form: str
+    type: str
+    default: Any = None
 
 
 SourceSpec = str
@@ -36,8 +46,11 @@ class RecipeSpec(BaseModel):
     Specification for a recipe to run a (model, experiment) pair
 
     """
-    source_id: str
-    command: list[str]
+
+    engine: list[str] = Field([])
+    "the list of engines this recipe depends on"
+    command: str
+    "the templated command to run the recipe"
 
 
 class EngineSpec(BaseModel):
@@ -47,8 +60,7 @@ class EngineSpec(BaseModel):
     """
 
     description: str
-    engine_parameters: dict[str, str]
-    supported_models: dict[str, RecipeSpec]
+    parameters: dict[str, TypeSpec] = Field({})
 
 
 class ModelSpec(BaseModel):
@@ -58,18 +70,20 @@ class ModelSpec(BaseModel):
     """
 
     description: str
-    required_parameters: dict[str, str]
-    optional_parameters: dict[str, str]
-    observables: dict[str, str]
+    parameters: dict[str, TypeSpec] = Field([])
+    observables: dict[str, TypeSpec] = Field([])
+    run: RecipeSpec
 
-    def validate(self, types: dict[str, TypeSpec]):
+    def validate(self, specs: dict[str, TypeSpec]):
         # check if required parameters match types
-        for param, form in self.required_parameters.items():
+        for key, spec in self.parameters.items():
             # validate if type is defined
-            if param not in types:
-                raise TypeError(f"type={param} does not exist")
+            if key not in specs:
+                specs[key] = spec
+                # raise TypeError(f"type={param} does not exist")
             # validate if type spec matches
-            typ = types[param]
-            if form != typ.form:
-                raise TypeError(f"format={form} does not match the defined type={typ}")
+            spec_type = get_canonical_type(spec.type)
+            slot_type = get_canonical_type(specs[key].type)
+            if spec_type != slot_type:
+                raise TypeError(f"parameter {key}: {spec_type} does not match type={slot_type}")
         print("[Model] Validated")

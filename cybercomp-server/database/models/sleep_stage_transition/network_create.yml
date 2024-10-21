@@ -1,0 +1,27 @@
+description: "derive connections of a given brain network"
+
+parameters:
+  code: { type: "path" }
+  network_config: { type: "path" }
+  network_mri: { type: "path", default: "" }
+  subnet_3d: { type: "path", default: "" }
+  distance_3d: { type: "path", default: "" }
+
+observables:
+  connection_info: { type: "path" }
+
+run:
+  engine:
+    - bash
+    - cpp
+  command: "
+    cd {{parameters.code}};
+
+    network_config={{parameters.network_config}}
+    network_mri={{parameters.network_mri}}
+    subnet_3d={{parameters.subnet_3d}}
+    distance_3d={{parameters.distance_3d}}
+    connection_info={{observables.connection_info}}
+
+    make network
+    "

@@ -1,8 +1,0 @@
-description: "substitute a templated source code with parameter/hyperparameter values"
-required_parameters:
-  source_id: "file"
-  source_defaults: "file"
-optional_parameters:
-  source_overrides: "file"
-observables:
-  neuro_code: "file"

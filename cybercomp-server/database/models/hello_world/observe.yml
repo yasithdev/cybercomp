@@ -1,0 +1,17 @@
+description: "concatenate files 'hello' and 'world' into 'hello_world'"
+
+parameters:
+  hello: { type: "path" }
+  world: { type: "path" }
+
+observables:
+  hello_world: { type: "path" }
+
+run:
+  engine:
+    - "bash"
+  command: "
+    cat {{parameters.hello}} >> {{observables.hello_world}};
+    cat '\n' >> {{observables.hello_world}};
+    cat {{parameters.world}} >> {{observables.hello_world}};
+    "
