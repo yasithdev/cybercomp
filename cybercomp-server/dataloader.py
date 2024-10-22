@@ -43,6 +43,7 @@ class DataLoader:
         # TODO add key as prefix to each type
         for key, v in models.items():
             types.update(v.parameters)
+            types.update(v.observables)
         for key, v in engines.items():
             types.update(v.parameters)
         # for fp in self.types_dir.glob("*.yml"):

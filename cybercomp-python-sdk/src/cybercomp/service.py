@@ -101,27 +101,32 @@ class API:
         for model_id, model in self.models.items():
             fp = model_dir / f"{model_id}.py"
 
-            params = dict[str, str]()
+            rparams = dict[str, str]()
+            dparams = dict[str, str]()
+            oparams = dict[str, str]()
+
             for k, v in model.parameters.items():
-                if v is None:
-                    params[k] = f"RequiredParameter[{k}]()"
+                default = v.default
+                if default is None:
+                    rparams[k] = f"RequiredParameter({k})"
                 else:
-                    params[k] = f"OptionalParameter[{k}](v)"
+                    dparams[k] = f"DefaultParameter({k}, {repr(default)})"
+            
             for k in model.observables:
-                params[k] = f"Observable[{k}]"
+                oparams[k] = f"Observable({k})"
 
             code = generate_class_py(
                 imports=[
                     ("cybercomp", "Model"),
                     ("cybercomp", "RequiredParameter"),
-                    ("cybercomp", "OptionalParameter"),
+                    ("cybercomp", "DefaultParameter"),
                     ("cybercomp", "Observable"),
                     ("..types", "*"),
                 ],
                 class_name=model_id,
                 class_bases=["Model"],
                 docstring=model.description,
-                fixed_typeless_params=params,
+                fixed_typeless_params={**dparams, **rparams, **oparams},
                 # functions={"__call__": recipe_to_fs(model.run)} # TODO fix this
             )
             code = black.format_str(code, mode=black.Mode())
@@ -155,7 +160,7 @@ class API:
                 imports=[
                     ("cybercomp", "Engine"),
                     ("cybercomp", "RequiredParameter"),
-                    ("cybercomp", "OptionalParameter"),
+                    ("cybercomp", "DefaultParameter"),
                     ("cybercomp", "Observable"),
                     ("cybercomp", "Hyperparameter"),
                     ("..types", "*"),

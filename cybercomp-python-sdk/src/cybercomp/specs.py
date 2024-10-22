@@ -24,7 +24,7 @@ class TypeSpec(BaseModel):
     """
 
     type: str
-    default: Any = None
+    default: Any = Field(None)
 
 
 SourceSpec = str
