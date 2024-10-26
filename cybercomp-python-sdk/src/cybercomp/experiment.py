@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import time
 from typing import Iterator
+import inspect
 
-from cybercomp.base import ArgSet, Observable, ObsMap, ObsQuery, RunSet
+from cybercomp.base import Args, Observable, ObsMap, ObsQuery, RunConfig
 
-from .base import ArgSet, Engine, Model, Runnable, RunState, Runtime, tostr
+from .base import Args, Engine, Model, Parameter, Hyperparameter, Observable, Runnable, RunState, Runtime, tostr
 
 
 class Step(Runnable):
@@ -21,42 +23,45 @@ class Step(Runnable):
         self.model = model
         self.engine = engine
 
-    def prepare(self, args: ArgSet, level: int = 0) -> RunSet:
+    def prepare(self, args: Args, level: int = 0) -> None:
         prefix = "  " * level
         print(f"{prefix}->[Step] {self.name}.prepare()")
-        print(tostr("args", args, level + 1))
-        # first, ensure that args satisfy model and engine requirements
-        # next, concatenate the args with model observables and return it
-        (param_req, param_opt, observ) = self.model.describe(level + 1)
-        hparam = self.engine.describe(level + 1)
-        print(f"{prefix}  param_req={param_req}")
-        print(f"{prefix}  param_opt={param_opt}")
-        print(f"{prefix}  observ={observ}")
-        print(f"{prefix}  hparam={hparam}")
-        print()
-        return RunSet(args={*param_req, *param_opt, *hparam}, obs=observ)
+        # assign args
+        P = {a for a in args if isinstance(a, Parameter)}
+        H = {a for a in args if isinstance(a, Hyperparameter)}
+        self.model.update(P)
+        self.engine.update(H)
+        (params, obs) = self.model.describe(level + 1)
+        hparams = self.engine.describe(level + 1)
+        self.config = RunConfig(params, hparams, obs)
 
-    def run(self, run: RunSet, runtime: Runtime, level: int = 0) -> RunState:
+    def run(self, runtime: Runtime, level: int = 0) -> RunState:
+        assert self.config is not None, "Step.prepare() must be called first"
         prefix = "  " * level
         print(f"{prefix}->[Step] {self.name}.run()")
-        print(tostr("args=", run.args, level + 1))
-        print(tostr("obs=", run.obs, level + 1))
+        print(tostr("p=", self.config.params, level + 1))
+        print(tostr("h=", self.config.hparams, level + 1))
+        print(tostr("o=", self.config.obs, level + 1))
         print()
-        return runtime.run(self.model, self.engine, run)
+        return runtime.run(self)
 
-    def poll(self, run: RunSet, runtime: Runtime, level: int = 0) -> RunState:
+    def poll(self, runtime: Runtime, level: int = 0) -> RunState:
+        assert self.config is not None, "Step.run() must be called first"
         prefix = "  " * level
         print(f"{prefix}->[Step] {self.name}.run()")
-        print(tostr("args=", run.args, level + 1))
-        print(tostr("obs=", run.obs, level + 1))
+        print(tostr("p=", self.config.params, level + 1))
+        print(tostr("h=", self.config.hparams, level + 1))
+        print(tostr("o=", self.config.obs, level + 1))
         print()
-        return runtime.poll(self.model, self.engine, run)
+        return runtime.poll(self)
 
-    def fetch(self, run: RunSet, runtime: Runtime, query: ObsQuery = None, level: int = 0) -> ObsMap:
+    def fetch(self, runtime: Runtime, query: ObsQuery = None, level: int = 0) -> ObsMap:
+        assert self.config is not None, "Step.run() must be called first"
         prefix = "  " * level
         print(f"{prefix}->[Step] {self.name}.fetch()")
-        print(tostr("args=", run.args, level + 1))
-        print(tostr("obs=", run.obs, level + 1))
+        print(tostr("p=", self.config.params, level + 1))
+        print(tostr("h=", self.config.hparams, level + 1))
+        print(tostr("o=", self.config.obs, level + 1))
         print()
         subquery = set()
         for key in self.__dir__():
@@ -64,7 +69,7 @@ class Step(Runnable):
             if isinstance(attr, Observable):
                 if query is None or attr.typing in {o.typing for o in query}:
                     subquery.add(attr)
-        return runtime.fetch(self.model, self.engine, run, subquery)
+        return runtime.fetch(self, subquery)
 
     def describe(self, level: int = 0) -> None:
         prefix = "  " * level
@@ -119,34 +124,37 @@ class Experiment(Runnable):
         """
         return f"name=[{self.name}], steps=[" + ">>".join([s.name for s in self.steps]) + "]"
 
-    def prepare(self, args: ArgSet, level: int = 0) -> RunSet:
+    def prepare(self, args: Args, level: int = 0) -> None:
         """
-        Prepare the experiment by identifying the
-        inputs (argsets) and outputs (obsets) for the experiment.
+        Prepare the experiment for the given args
         """
         from .util_composition import split, union_a
 
-        # do an independent run for each argset
+        # do an independent run for each Args
         prefix = "  " * level
         print(f"{prefix}->[Experiment] {self.name}.prepare()")
         # setup iteration variables
-        uA = set()
+        uP = set()
+        uH = set()
         uO = set()
         for step in self.steps:
             # step_args is the subset of args that's used by step
-            (a, o) = step.prepare(args, level=level + 1)
-            uA.update(a)
-            uO.update(o)
-            args = union_a(args, o)
+            step.prepare(args, level=level + 1)
+            assert step.config is not None
+            args = union_a(args, step.config.obs)
+            uP.update(step.config.params)
+            uH.update(step.config.hparams)
+            uO.update(step.config.obs)
 
         # validate external args, reused, and external obs
-        external_args, reused, external_obs = split(uA, uO)
-        assert len(external_args.difference(args)) == 0, "Some external args are not provided"
-        assert len(reused) > 0, "Experiment has mutually exclusive steps"
-        assert uO.intersection(external_obs) == external_obs, "Experiment generates no external obs"
+        (ext_P, ext_H), (int_P, int_H), ext_O = split(uP, uH, uO)
+        assert len(ext_P.difference(args)) == 0, "Some external params are not provided"
+        assert len(ext_H.difference(args)) == 0, "Some external hparams are not provided"
+        assert len(int_P) > 0, "Experiment has mutually exclusive steps"
+        assert uO.intersection(ext_O) == ext_O, "Experiment generates no external obs"
 
-        # return (essential args, and generated obs
-        return RunSet(args=external_args, obs=uO)
+        # update the configuration
+        self.config = RunConfig(ext_P, ext_H, uO)
 
     def describe(self, level: int = 0) -> None:
         prefix = "  " * level
@@ -155,19 +163,19 @@ class Experiment(Runnable):
         for step in self.steps:
             step.describe(level + 1)
 
-    def run(self, run: RunSet, runtime: Runtime, level: int = 0) -> Iterator[RunState]:
+    def run(self, runtime: Runtime, level: int = 0) -> Iterator[RunState]:
         prefix = "  " * level
-        # performing an end-to-end experiment run on a single runset
+        # performing an end-to-end experiment run on a single RunConfig
         print(f"{prefix}->[Experiment] {self.name}.run()")
         for step in self.steps:
             # check if the step was successfully queued
             if isinstance(step, Experiment):
                 # run each step in sequence
-                for state in step.run(run, runtime=runtime, level=level + 1):
+                for state in step.run(runtime=runtime, level=level + 1):
                     if state != "QUEUED":
                         raise RuntimeError(f"Failed step=[{step.name}]")
             elif isinstance(step, Step):
-                state = step.run(run, runtime=runtime, level=level + 1)
+                state = step.run(runtime=runtime, level=level + 1)
                 if state != "QUEUED":
                     raise RuntimeError(f"Failed to queue step=[{step.name}]")
             else:
@@ -175,28 +183,50 @@ class Experiment(Runnable):
             # append the state to the status list
             yield "QUEUED"
 
-    def poll(self, run: RunSet, runtime: Runtime, level: int = 0) -> Iterator[RunState]:
+    def run_sync(self, runtime: Runtime, dt: int = 1, level: int = 0) -> RunState:
+        prefix = "  " * level
+        print(f"{prefix}->[Experiment] {self.name}.run_sync()")
+
+        # start the experiment
+        for state in self.run(runtime=runtime, level=level + 1):
+            if state != "QUEUED":
+                raise RuntimeError(f"Failed to queue step=[{self.name}]")
+
+        # wait for the experiment to complete
+        run_state = "RUNNING"
+        while run_state == "RUNNING":
+            flags = []
+            for state in self.poll(runtime=runtime):
+                if state not in ["COMPLETED", "FAILED"]:
+                    time.sleep(dt)
+                    continue
+                else:
+                    flags.append(state == "COMPLETED")
+            run_state = "COMPLETED" if all(flags) else "FAILED"
+        return run_state
+
+    def poll(self, runtime: Runtime, level: int = 0) -> Iterator[RunState]:
         prefix = "  " * level
         print(f"{prefix}->[Experiment] {self.name}.run()")
         for step in self.steps:
             # check if the step was successfully queued
             if isinstance(step, Experiment):
-                for state in step.poll(run, runtime=runtime, level=level + 1):
+                for state in step.poll(runtime=runtime, level=level + 1):
                     if state != "COMPLETED":
                         raise RuntimeError(f"Failed to complete step=[{step.name}]")
             elif isinstance(step, Step):
-                state = step.poll(run, runtime=runtime, level=level + 1)
+                state = step.poll(runtime=runtime, level=level + 1)
                 if state != "COMPLETED":
                     raise RuntimeError(f"Failed to complete step=[{step.name}]")
             else:
                 raise ValueError(f"Unsupported step type=[{type(step).__name__}]")
             yield state
 
-    def fetch(self, run: RunSet, runtime: Runtime, query: ObsQuery = None, level: int = 0) -> ObsMap:
+    def fetch(self, runtime: Runtime, query: ObsQuery = None, level: int = 0) -> ObsMap:
         prefix = "  " * level
         print(f"{prefix}->[Experiment] {self.name}.fetch()")
         obs = dict()
         for step in self.steps:
-            result = step.fetch(run, runtime=runtime, level=level + 1)
+            result = step.fetch(runtime=runtime, query=query, level=level + 1)
             obs.update(result)
         return obs

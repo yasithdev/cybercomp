@@ -3,6 +3,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any, Generic, Literal, NamedTuple, TypeVar, get_args, get_origin
 
+Step = Any  # NOTE - don't import the real class, as it causes circular imports
+
 T = TypeVar("T", contravariant=True)
 RunState = Literal["QUEUED", "RUNNING", "COMPLETED", "FAILED"]
 
@@ -39,39 +41,47 @@ class Model:
     """
 
     @classmethod
-    def describe(cls, level: int = 0) -> tuple[set[RequiredParameter], set[DefaultParameter], set[Observable]]:
+    def describe(cls, level: int = 0, silent: bool = False) -> tuple[set[Parameter], set[Observable]]:
         """
         Describe the model
 
         """
-        rp, op, ob = set(), set(), set()
-        trp = set[RequiredParameter]()
-        top = set[DefaultParameter]()
-        tob = set[Observable]()
-        for k, v in cls.__dict__.items():
+        rp = set[RequiredParameter]()
+        op = set[DefaultParameter]()
+        ob = set[Observable]()
+        for e in cls.__dict__.values():
             origin = typ = None
-            if hasattr(v, "typing"):
-                typ = v.typing
-            if hasattr(v, "__class__"):
-                origin = v.__class__
+            if hasattr(e, "typing"):
+                typ = e.typing
+            if hasattr(e, "__class__"):
+                origin = e.__class__
             if origin is None or typ is None:
                 continue
             if issubclass(origin, RequiredParameter):
-                rp.add(k)
-                trp.add(typ)
+                rp.add(e)
             if issubclass(origin, DefaultParameter):
-                op.add(k)
-                top.add(typ)
+                op.add(e)
             if issubclass(origin, Observable):
-                ob.add(k)
-                tob.add(typ)
+                ob.add(e)
         prefix = "  " * level
-        print(f"{prefix}->[Model] {cls.__name__}")
-        print(f"{prefix}  parameters [w/default] ({len(op)}):", op)
-        print(f"{prefix}  parameters [required] ({len(rp)}):", rp)
-        print(f"{prefix}  observables ({len(ob)}):", ob)
-        print()
-        return (trp, top, tob)
+        if not silent:
+            print(f"{prefix}->[Model] {cls.__name__}")
+            print(f"{prefix}  parameters [w/default] ({len(op)}):", [*map(str, op)])
+            print(f"{prefix}  parameters [required] ({len(rp)}):", [*map(str, rp)])
+            print(f"{prefix}  observables ({len(ob)}):", [*map(str, ob)])
+            print()
+        return {*rp, *op}, ob
+
+    def update(
+        self,
+        params: set[Parameter],
+    ) -> None:
+        """
+        Update the model with the given parameters
+
+        """
+        for p in params:
+            setattr(self, p.__class__.__name__, p)
 
 
 class Engine:
@@ -81,7 +91,7 @@ class Engine:
     """
 
     @classmethod
-    def describe(cls, level: int = 0) -> set[Hyperparameter]:
+    def describe(cls, level: int = 0, silent: bool = False) -> set[Hyperparameter]:
         """
         Describe the engine
 
@@ -94,12 +104,24 @@ class Engine:
                 continue
             if issubclass(origin, Hyperparameter):
                 hp.add(k)
-                thp.add(typ[0])
+                thp.add(v)
         prefix = "  " * level
-        print(f"{prefix}->[Engine] {cls.__name__}")
-        print(f"{prefix}  hyperparameters ({len(hp)}):", hp)
-        print()
+        if not silent:
+            print(f"{prefix}->[Engine] {cls.__name__}")
+            print(f"{prefix}  hyperparameters ({len(hp)}):", hp)
+            print()
         return thp
+
+    def update(
+        self,
+        hparams: set[Hyperparameter],
+    ) -> None:
+        """
+        Update the engine with the given hyperparameters
+
+        """
+        for h in hparams:
+            setattr(self, h.__class__.__name__, h)
 
 
 # --------------------------------------------
@@ -217,9 +239,17 @@ class Observable(Generic[T]):
 # Execution Types and Definitions
 # --------------------------------------------
 
-ArgSet = set[Parameter | Hyperparameter]
-ObsSet = set[Observable]
-RunSet = NamedTuple("RunSet", [("args", ArgSet), ("obs", ObsSet)])
+Args = set[Parameter | Hyperparameter]
+Params = set[Parameter]
+Hparams = set[Hyperparameter]
+Obs = set[Observable]
+
+
+class RunConfig(NamedTuple):
+    params: Params
+    hparams: Hparams
+    obs: Obs
+
 
 Observation = Any
 OutSet = set[Observation]
@@ -233,42 +263,44 @@ class Runtime(ABC):
     """
     Base class for an execution context
 
+    Objectives:
+
+    1. during __init__(), iterate past runs (in runs_dir/) and populate the execution_log
+    2. track each run (key = hash(args,obs); self.history[key] = runs_dir/run_id) for future lookup
+
     """
 
-    @abstractmethod
-    def run(self, model: Model, engine: Engine, run: RunSet) -> RunState:
-        """
-        Start a computational run using the given information
-
-        @param model: the model to run
-        @param engine: the engine to run
-        @param run: the run identifier
-        @return: the run status
-
-        """
+    runs_dir: str = "runs/"
+    history = {}
 
     @abstractmethod
-    def poll(self, model: Model, engine: Engine, run: RunSet) -> RunState:
+    def run(self, step: Step) -> RunState:
         """
-        Poll the execution status of the computational run
+        Run a computational step
 
-        @param model: the model to poll
-        @param engine: the engine to poll
-        @param run: the run identifier
-        @return: the run status
+        @param step: computational step to run
+        @return: the execution state
 
         """
 
     @abstractmethod
-    def fetch(self, model: Model, engine: Engine, run: RunSet, query: ObsQuery) -> ObsMap:
+    def poll(self, step: Step) -> RunState:
         """
-        Fetch observations from a completed computational run
+        Poll the execution state of a computational step
 
-        @param model: the model to fetch
-        @param engine: the engine to fetch
-        @argset: the argument set (identifier)
-        @obsset: the observable set (identifier)
-        @return: the fetched observations
+        @param step: computational step to run
+        @return: the execution state
+
+        """
+
+    @abstractmethod
+    def fetch(self, step: Step, query: ObsQuery) -> ObsMap:
+        """
+        Fetch observations from a completed computational step
+
+        @param step: computational step to run
+        @param query: the observables to fetch
+        @return: the observations
 
         """
 
@@ -280,6 +312,7 @@ class Runnable(ABC):
     """
 
     name: str
+    config: RunConfig | None = None
 
     def __init__(self, name: str) -> None:
         super().__init__()
@@ -293,29 +326,36 @@ class Runnable(ABC):
         """
 
     @abstractmethod
-    def prepare(self, args: ArgSet, level: int = 0) -> RunSet:
+    def prepare(self, args: Args, level: int = 0) -> None:
         """
-        Generate run set for the given arg set
+        Prepare to run for the given arguments
 
         @param args: the argument sets to prepare
-        @return: the run sets
 
         """
 
     @abstractmethod
-    def run(self, run: RunSet, runtime: Runtime, level: int = 0) -> RunState:
+    def run(self, runtime: Runtime, level: int = 0) -> RunState:
         """
-        Execute the run set on a runtime
+        Execute on a runtime
 
-        @param args: the run sets to run
-        @return: the run statuses
+        @return: the execution state
 
         """
 
     @abstractmethod
-    def fetch(self, run: RunSet, runtime: Runtime, observables: ObsQuery = None, level: int = 0) -> ObsMap:
+    def poll(self, runtime: Runtime, level: int = 0) -> RunState:
         """
-        Fetch observations generated by the run set from the runtime
+        Poll for execution state
+
+        @return: the execution state
+
+        """
+
+    @abstractmethod
+    def fetch(self, runtime: Runtime, observables: ObsQuery = None, level: int = 0) -> ObsMap:
+        """
+        Fetch observations for the run, from the runtime
 
         @param args: the run sets to run
         @return: the fetched observables

@@ -1,20 +1,7 @@
 from itertools import product
-from typing import Iterator, Sequence, Set, TypeVar
+from typing import Iterator, Set, TypeVar
 
-from .base import (
-    ArgSet,
-    Engine,
-    Hyperparameter,
-    Model,
-    Observable,
-    ObsMap,
-    ObsQuery,
-    Parameter,
-    RunSet,
-    RunState,
-    Runtime,
-    T,
-)
+from .base import Args, Engine, Hyperparameter, Model, Observable, ObsMap, ObsQuery, Parameter, RunState, Runtime, T
 from .experiment import Experiment, Step
 
 N = TypeVar("N", int, float)
@@ -59,58 +46,6 @@ def observable(typ: TypeVar, value: T) -> Observable[T]:
 
 
 # --------------------------------------------
-# Range Functions
-# --------------------------------------------
-
-Z = TypeVar("Z", Parameter, Hyperparameter)
-
-
-def vrange(klass: type[Z], typ: TypeVar, start: N, end: N, num: int) -> Sequence[Z]:
-    """
-    Generate a range of values for a given type
-
-    @param klass: the class to instantiate
-    @param typ: the type of the values
-    @param start: the start of the range
-    @param end: the end of the range
-    @param num: the number of values to generate
-
-    """
-    import numpy as np
-
-    space = np.linspace(start, end, num)
-    P = list[Z]()
-    for value in space:
-        assert type(value) in typ.__constraints__
-        p = klass(typ)(value.item())
-        P.append(p)
-    return P
-
-
-def args(
-    parameter_space: Sequence[Set[Parameter]],
-    hyperparameter_space: Sequence[Set[Hyperparameter]],
-) -> set[ArgSet]:
-    """
-    Generate a set of arguments from a given parameter/hyperparameter space
-
-    @param parameter_space: a sequence of parameter sets.
-                            all items have the same set of parameters,
-                            but with different values.
-    @hyperparameter_space:  a sequence of hyperparameter sets.
-                            all items have the same set of hyperparameters,
-                            but with different values.
-
-    """
-    # cross product of parameter and hyperparameter spaces
-    argsets = set[ArgSet]()
-    for parameters, hyperparameters in product(parameter_space, hyperparameter_space):
-        argset = {*parameters, *hyperparameters}
-        argsets.add(argset)
-    return argsets
-
-
-# --------------------------------------------
 # Composition Functions
 # --------------------------------------------
 
@@ -128,120 +63,123 @@ def experiment(model: Model, engine: Engine, name: str) -> Experiment:
     return Experiment(name, Step(name, model, engine))
 
 
-def prepare(
-    experiment: Experiment,
-    args: ArgSet,
-) -> RunSet:
+def run_async(experiment: Experiment, args: Args, runtime: Runtime) -> Iterator[RunState]:
     """
-    Prepare the experiment by generating run sets for the given arg sets
+    Run experiment with the given args (non-blocking)
 
-    @param experiment: the experiment to prepare
-    @param args: the argument sets to prepare
-    @return: the run sets
+    @param experiment: the experiment
+    @param args: the args
+    @param runtime: the runtime
 
-    """
-    return experiment.prepare(args)
-
-
-def begin_run(
-    experiment: Experiment,
-    run: RunSet,
-    runtime: Runtime,
-) -> Iterator[RunState]:
-    """
-    Begin running the experiment with the given run sets
-
-    @param experiment: the experiment to run
-    @param run: the run sets to run
-    @param runtime: the runtime to use
-    @return: the run statuses
+    @return: the current execution state
 
     """
-    return experiment.run(run, runtime=runtime)
+    experiment.prepare(args)
+    return experiment.run(runtime=runtime)
 
 
-def wait_for_completion(
-    experiment: Experiment,
-    run: RunSet,
-    runtime: Runtime,
-    poll_every_n_secs: int = 2,
-) -> bool:
+def run_sync(experiment: Experiment, args: Args, runtime: Runtime) -> RunState:
     """
-    Block until experiment reaches a final state
+    Run experiment with the given args (blocking)
 
-    @param experiment: the experiment to run
-    @param run: the run sets to run
-    @param runtime: the runtime to use
-    @return: the run statuses
+    @param experiment: the experiment
+    @param args: the args
+    @param runtime: the runtime
+
+    @return: the current execution state
 
     """
-    import time
-
-    while True:
-        done = []
-        for state in experiment.poll(run, runtime=runtime):
-            ok = all(state in ["COMPLETED", "FAILED"] for state in state)
-            done.append(ok)
-        if all(done):
-            return True
-        else:
-            time.sleep(poll_every_n_secs)
+    experiment.prepare(args)
+    return experiment.run_sync(runtime=runtime)
 
 
 def poll(
     experiment: Experiment,
-    run: RunSet,
     runtime: Runtime,
 ) -> Iterator[RunState]:
     """
-    Poll the experiment with the given run sets
+    Poll the execution state of the experiment
 
     @param experiment: the experiment to run
-    @param run: the run sets to run
     @param runtime: the runtime to use
-    @return: the run statuses
+    @return: the current execution state
 
     """
-    return experiment.poll(run, runtime=runtime)
-
-
-def run(
-    experiment: Experiment,
-    args: ArgSet,
-    runtime: Runtime,
-):
-    """
-    Run the experiment with the given run sets and wait for completion
-
-    @param experiment: the experiment to run
-    @param args: the run sets to run
-    @param runtime: the runtime to use
-    @return: the run statuses
-
-    """
-    runset = prepare(experiment, args)
-    begin_run(experiment, runset, runtime=runtime)
-    wait_for_completion(experiment, runset, runtime=runtime)
-    return experiment, runset
+    return experiment.poll(runtime=runtime)
 
 
 def fetch(
     experiment: Experiment,
-    run: RunSet,
     runtime: Runtime,
     query: ObsQuery = None,
 ) -> ObsMap:
     """
-    Fetch the observables for the given run sets
+    Query for observations from the given run sets
 
     @param experiment: the experiment to run
     @param run: the run sets to run
     @param runtime: the runtime to use
-    @param observables: the observables to fetch
-    @return: the fetched observables
+    @param query: the observables to fetch
+    @return: the generated observations
 
     """
-    return experiment.fetch(run, runtime=runtime, query=query)
+    return experiment.fetch(runtime=runtime, query=query)
 
 
-__all__ = ["parameter", "hyperparameter", "observable", "vrange", "prepare", "run", "fetch", "experiment"]
+# --------------------------------------------
+# Range Functions
+# --------------------------------------------
+
+Z = TypeVar("Z", Parameter, Hyperparameter)
+
+
+def space(klass: type[Z], typ: TypeVar, start: N, end: N, num: int) -> Iterator[Z]:
+    """
+    Generate a space of values for a given type
+
+    @param klass: the class to instantiate
+    @param typ: the type of the values
+    @param start: the start of the range
+    @param end: the end of the range
+    @param num: the number of values to generate
+
+    """
+    import numpy as np
+
+    space = np.linspace(start, end, num)
+    for value in space:
+        assert type(value) in typ.__constraints__
+        p = klass(typ)(value.item())
+        yield p
+
+
+def walk(
+    param_space: Iterator[Set[Parameter]],
+    hparam_space: Iterator[Set[Hyperparameter]],
+) -> Iterator[Args]:
+    """
+    Generate a set of arguments from a given parameter/hyperparameter space
+
+    @param param_space: a sequence of parameter sets. all items have the same set of parameters, with different values.
+    @param hparam_space: a sequence of hyperparameter sets. all items have the same set of hyperparameters, with different values.
+
+    @return: the set of arguments
+
+    """
+    # cross product of parameter and hyperparameter spaces
+    for parameters, hyperparameters in product(param_space, hparam_space):
+        yield {*parameters, *hyperparameters}
+
+
+__all__ = [
+    "parameter",
+    "hyperparameter",
+    "observable",
+    "experiment",
+    "run_async",
+    "run_sync",
+    "poll",
+    "fetch",
+    "space",
+    "walk",
+]

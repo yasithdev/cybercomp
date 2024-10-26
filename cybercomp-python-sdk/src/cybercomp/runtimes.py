@@ -1,6 +1,6 @@
 from typing import Any, TypeVar
 
-from cybercomp.base import Engine, Model, ObsMap, ObsQuery, RunSet
+from cybercomp.base import Engine, Model, ObsMap, ObsQuery, RunConfig
 
 from .base import RunState, Runtime, tostr
 
@@ -21,7 +21,7 @@ class LocalRuntime(Runtime):
     def __exit__(self, exc_type, exc_value, traceback):
         print(f"Releasing resource: {self.__class__.__name__}")
 
-    def run(self, model: Model, engine: Engine, run: RunSet) -> RunState:
+    def run(self, model: Model, engine: Engine, run: RunConfig) -> RunState:
         # TODO correctly implement this
         print(f"LocalRuntime.run()")
         print(f"model={model}")
@@ -30,7 +30,7 @@ class LocalRuntime(Runtime):
         print(tostr("obs=", run.obs))
         return "QUEUED"
 
-    def poll(self, model: Model, engine: Engine, run: RunSet) -> RunState:
+    def poll(self, model: Model, engine: Engine, run: RunConfig) -> RunState:
         # TODO correctly implement this
         print(f"LocalRuntime.poll()")
         print(f"model={model}")
@@ -39,7 +39,7 @@ class LocalRuntime(Runtime):
         print(tostr("obs=", run.obs))
         return "COMPLETED"
 
-    def fetch(self, model: Model, engine: Engine, run: RunSet, query: ObsQuery) -> ObsMap:
+    def fetch(self, model: Model, engine: Engine, run: RunConfig, query: ObsQuery) -> ObsMap:
         # TODO correctly implement this
         print(f"LocalRuntime.fetch()")
         print(f"model={model}")
