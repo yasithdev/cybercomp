@@ -125,13 +125,13 @@ class Engine:
 
 
 # --------------------------------------------
-# Parameter Definitions
+# Argument Definitions
 # --------------------------------------------
 
 
-class Parameter(Generic[T]):
+class TypedArgument(Generic[T]):
     """
-    Base class for a parameter
+    Base class for a typed argument
 
     """
 
@@ -142,6 +142,30 @@ class Parameter(Generic[T]):
     def __init__(self, t: TypeVar) -> None:
         super().__init__()
         self.typing = t
+
+    def __eq__(self, value: object) -> bool:
+        if not isinstance(value, TypedArgument):
+            return False
+        type_match = self.typing == value.typing
+        if self.initialized and value.initialized:
+            value_match = self.value == value.value
+        else:
+            value_match = True
+        return type_match and value_match
+
+    def __hash__(self) -> int:
+        type_hash = hash(self.typing)
+        value_hash = 0
+        if self.initialized:
+            value_hash = hash(self.value)
+        return type_hash + value_hash
+
+
+class Parameter(TypedArgument[T]):
+    """
+    Base class for a parameter
+
+    """
 
     def __call__(self, v: T) -> Parameter:
         self.value = v
@@ -173,24 +197,11 @@ class DefaultParameter(Parameter[T]):
         self(v)
 
 
-# --------------------------------------------
-# Hyperparameter Definitions
-# --------------------------------------------
-
-
-class Hyperparameter(Generic[T]):
+class Hyperparameter(TypedArgument[T]):
     """
     Base class for a hyperparameter
 
     """
-
-    initialized = False
-    typing: TypeVar
-    value: T
-
-    def __init__(self, t: TypeVar) -> None:
-        super().__init__()
-        self.typing = t
 
     def __call__(self, v: T) -> Hyperparameter:
         self.value = v
@@ -204,24 +215,11 @@ class Hyperparameter(Generic[T]):
             return f"H[{self.typing}](not set)"
 
 
-# --------------------------------------------
-# Observable Definitions
-# --------------------------------------------
-
-
-class Observable(Generic[T]):
+class Observable(TypedArgument[T]):
     """
     Base class for an observation
 
     """
-
-    initialized = False
-    typing: TypeVar
-    value: T
-
-    def __init__(self, t: TypeVar) -> None:
-        super().__init__()
-        self.typing = t
 
     def __call__(self, v: T) -> Observable:
         self.value = v
@@ -326,11 +324,11 @@ class Runnable(ABC):
         """
 
     @abstractmethod
-    def prepare(self, args: Args, level: int = 0) -> None:
+    def setup(self, args: Args, level: int = 0) -> None:
         """
-        Prepare to run for the given arguments
+        Setup to run for the given arguments
 
-        @param args: the argument sets to prepare
+        @param args: the arguments to run with
 
         """
 

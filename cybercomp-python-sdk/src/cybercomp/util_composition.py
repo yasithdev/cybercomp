@@ -1,4 +1,4 @@
-from .base import Args, Hyperparameter, Obs, Params, Hparams, Observable, Parameter
+from .base import Args, DefaultParameter, Hyperparameter, Obs, Params, Hparams, Observable, Parameter
 
 
 def as_args(obs: Obs) -> Args:
@@ -54,6 +54,7 @@ def int_p(a: Params, o: Obs) -> Params:
     """
     return a.intersection(as_args(o))
 
+
 def int_h(a: Hparams, o: Obs) -> Hparams:
     """
     Create the next hparam set by intersecting the current hparam set with the observable set
@@ -78,6 +79,9 @@ def int_o(a: Args, o: Obs) -> Obs:
 
 
 def split(uP: Params, uH: Hparams, uO: Obs) -> tuple[tuple[Params, Hparams], tuple[Params, Hparams], Obs]:
+
+    # NOTE ignoring default parameters from uP
+    uP = {p for p in uP if not isinstance(p, DefaultParameter)}
 
     iP = int_p(uP, uO)
     iH = int_h(uH, uO)

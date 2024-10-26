@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import time
 from typing import Iterator
-import inspect
 
 from cybercomp.base import Args, Observable, ObsMap, ObsQuery, RunConfig
 
-from .base import Args, Engine, Model, Parameter, Hyperparameter, Observable, Runnable, RunState, Runtime, tostr
+from .base import Args, Engine, Hyperparameter, Model, Observable, Parameter, Runnable, RunState, Runtime, tostr
 
 
 class Step(Runnable):
@@ -23,9 +22,9 @@ class Step(Runnable):
         self.model = model
         self.engine = engine
 
-    def prepare(self, args: Args, level: int = 0) -> None:
+    def setup(self, args: Args, level: int = 0) -> Step:
         prefix = "  " * level
-        print(f"{prefix}->[Step] {self.name}.prepare()")
+        print(f"{prefix}->[Step] {self.name}.setup()")
         # assign args
         P = {a for a in args if isinstance(a, Parameter)}
         H = {a for a in args if isinstance(a, Hyperparameter)}
@@ -34,9 +33,10 @@ class Step(Runnable):
         (params, obs) = self.model.describe(level + 1)
         hparams = self.engine.describe(level + 1)
         self.config = RunConfig(params, hparams, obs)
+        return self
 
     def run(self, runtime: Runtime, level: int = 0) -> RunState:
-        assert self.config is not None, "Step.prepare() must be called first"
+        assert self.config is not None, "Step.setup() must be called first"
         prefix = "  " * level
         print(f"{prefix}->[Step] {self.name}.run()")
         print(tostr("p=", self.config.params, level + 1))
@@ -124,22 +124,22 @@ class Experiment(Runnable):
         """
         return f"name=[{self.name}], steps=[" + ">>".join([s.name for s in self.steps]) + "]"
 
-    def prepare(self, args: Args, level: int = 0) -> None:
+    def setup(self, args: Args, level: int = 0) -> Experiment:
         """
-        Prepare the experiment for the given args
+        Setup the experiment for the given args
         """
         from .util_composition import split, union_a
 
         # do an independent run for each Args
         prefix = "  " * level
-        print(f"{prefix}->[Experiment] {self.name}.prepare()")
+        print(f"{prefix}->[Experiment] {self.name}.setup()")
         # setup iteration variables
         uP = set()
         uH = set()
         uO = set()
         for step in self.steps:
             # step_args is the subset of args that's used by step
-            step.prepare(args, level=level + 1)
+            step.setup(args, level=level + 1)
             assert step.config is not None
             args = union_a(args, step.config.obs)
             uP.update(step.config.params)
@@ -150,11 +150,14 @@ class Experiment(Runnable):
         (ext_P, ext_H), (int_P, int_H), ext_O = split(uP, uH, uO)
         assert len(ext_P.difference(args)) == 0, "Some external params are not provided"
         assert len(ext_H.difference(args)) == 0, "Some external hparams are not provided"
-        assert len(int_P) > 0, "Experiment has mutually exclusive steps"
+        if len(self.steps) > 1:
+            assert len(int_P) > 0, "Experiment has mutually exclusive steps"
         assert uO.intersection(ext_O) == ext_O, "Experiment generates no external obs"
 
         # update the configuration
         self.config = RunConfig(ext_P, ext_H, uO)
+
+        return self
 
     def describe(self, level: int = 0) -> None:
         prefix = "  " * level
