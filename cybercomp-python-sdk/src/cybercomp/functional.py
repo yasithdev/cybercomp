@@ -1,5 +1,5 @@
 from itertools import product
-from typing import Sequence, Set, TypeVar
+from typing import Iterator, Sequence, Set, TypeVar
 
 from .base import (
     ArgSet,
@@ -33,7 +33,7 @@ def parameter(typ: TypeVar, value: T) -> Parameter[T]:
     @param value: the value of the parameter
 
     """
-    return Parameter[T](typ, value)
+    return Parameter[T](typ)(value)
 
 
 def hyperparameter(typ: TypeVar, value: T) -> Hyperparameter[T]:
@@ -44,7 +44,7 @@ def hyperparameter(typ: TypeVar, value: T) -> Hyperparameter[T]:
     @param value: the value of the hyperparameter
 
     """
-    return Hyperparameter[T](typ, value)
+    return Hyperparameter[T](typ)(value)
 
 
 def observable(typ: TypeVar, value: T) -> Observable[T]:
@@ -55,7 +55,7 @@ def observable(typ: TypeVar, value: T) -> Observable[T]:
     @param value: the value of the observable
 
     """
-    return Observable[T](typ, value)
+    return Observable[T](typ)(value)
 
 
 # --------------------------------------------
@@ -82,7 +82,7 @@ def vrange(klass: type[Z], typ: TypeVar, start: N, end: N, num: int) -> Sequence
     P = list[Z]()
     for value in space:
         assert type(value) in typ.__constraints__
-        p = klass(typ, value.item())
+        p = klass(typ)(value.item())
         P.append(p)
     return P
 
@@ -90,7 +90,7 @@ def vrange(klass: type[Z], typ: TypeVar, start: N, end: N, num: int) -> Sequence
 def args(
     parameter_space: Sequence[Set[Parameter]],
     hyperparameter_space: Sequence[Set[Hyperparameter]],
-) -> Sequence[ArgSet]:
+) -> set[ArgSet]:
     """
     Generate a set of arguments from a given parameter/hyperparameter space
 
@@ -103,10 +103,10 @@ def args(
 
     """
     # cross product of parameter and hyperparameter spaces
-    argsets = list[ArgSet]()
+    argsets = set[ArgSet]()
     for parameters, hyperparameters in product(parameter_space, hyperparameter_space):
-        argset = [*parameters, *hyperparameters]
-        argsets.append(argset)
+        argset = {*parameters, *hyperparameters}
+        argsets.add(argset)
     return argsets
 
 
@@ -130,8 +130,8 @@ def experiment(model: Model, engine: Engine, name: str) -> Experiment:
 
 def prepare(
     experiment: Experiment,
-    *args: ArgSet,
-) -> Sequence[RunSet]:
+    args: ArgSet,
+) -> RunSet:
     """
     Prepare the experiment by generating run sets for the given arg sets
 
@@ -140,28 +140,29 @@ def prepare(
     @return: the run sets
 
     """
-    return experiment.prepare(*args)
+    return experiment.prepare(args)
+
 
 def begin_run(
     experiment: Experiment,
-    *args: RunSet,
+    run: RunSet,
     runtime: Runtime,
-) -> Sequence[Sequence[RunState]]:
+) -> Iterator[RunState]:
     """
     Begin running the experiment with the given run sets
 
     @param experiment: the experiment to run
-    @param args: the run sets to run
+    @param run: the run sets to run
     @param runtime: the runtime to use
     @return: the run statuses
 
     """
-    return experiment.run(*args, runtime=runtime)
+    return experiment.run(run, runtime=runtime)
 
 
 def wait_for_completion(
     experiment: Experiment,
-    *args: RunSet,
+    run: RunSet,
     runtime: Runtime,
     poll_every_n_secs: int = 2,
 ) -> bool:
@@ -169,7 +170,7 @@ def wait_for_completion(
     Block until experiment reaches a final state
 
     @param experiment: the experiment to run
-    @param args: the run sets to run
+    @param run: the run sets to run
     @param runtime: the runtime to use
     @return: the run statuses
 
@@ -178,34 +179,35 @@ def wait_for_completion(
 
     while True:
         done = []
-        runsets_state = experiment.poll(*args, runtime=runtime)
-        for runset_state in runsets_state:
-            is_done = all(state in ["COMPLETED", "FAILED"] for state in runset_state)
-            done.append(is_done)
+        for state in experiment.poll(run, runtime=runtime):
+            ok = all(state in ["COMPLETED", "FAILED"] for state in state)
+            done.append(ok)
         if all(done):
             return True
         else:
             time.sleep(poll_every_n_secs)
 
+
 def poll(
     experiment: Experiment,
-    *args: RunSet,
+    run: RunSet,
     runtime: Runtime,
-) -> Sequence[Sequence[RunState]]:
+) -> Iterator[RunState]:
     """
     Poll the experiment with the given run sets
 
     @param experiment: the experiment to run
-    @param args: the run sets to run
+    @param run: the run sets to run
     @param runtime: the runtime to use
     @return: the run statuses
 
     """
-    return experiment.poll(*args, runtime=runtime)
+    return experiment.poll(run, runtime=runtime)
+
 
 def run(
     experiment: Experiment,
-    *args: ArgSet,
+    args: ArgSet,
     runtime: Runtime,
 ):
     """
@@ -217,28 +219,29 @@ def run(
     @return: the run statuses
 
     """
-    runsets = prepare(experiment, *args)
-    begin_run(experiment, *runsets, runtime=runtime)
-    wait_for_completion(experiment, *runsets, runtime=runtime)
-    return experiment, *runsets
+    runset = prepare(experiment, args)
+    begin_run(experiment, runset, runtime=runtime)
+    wait_for_completion(experiment, runset, runtime=runtime)
+    return experiment, runset
+
 
 def fetch(
     experiment: Experiment,
-    *args: RunSet,
+    run: RunSet,
     runtime: Runtime,
-    observables: ObsQuery = None,
-) -> Sequence[ObsMap]:
+    query: ObsQuery = None,
+) -> ObsMap:
     """
     Fetch the observables for the given run sets
 
     @param experiment: the experiment to run
-    @param args: the run sets to run
+    @param run: the run sets to run
     @param runtime: the runtime to use
     @param observables: the observables to fetch
     @return: the fetched observables
 
     """
-    return experiment.fetch(*args, runtime=runtime, observables=observables)
+    return experiment.fetch(run, runtime=runtime, query=query)
 
 
 __all__ = ["parameter", "hyperparameter", "observable", "vrange", "prepare", "run", "fetch", "experiment"]

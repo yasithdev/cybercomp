@@ -6,6 +6,7 @@ dependencies:
   - conda-forge::setuptools
   - conda-forge::ipython
   - conda-forge::ipykernel
+  - conda-forge::jupyterlab
   - pip:
       - "-r cybercomp-server/requirements.txt"
       - -e cybercomp-python-sdk/

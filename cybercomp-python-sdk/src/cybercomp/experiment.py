@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Sequence
+from typing import Iterator
 
-from cybercomp.base import ArgSet, ObsMap, ObsQuery, RunSet
+from cybercomp.base import ArgSet, Observable, ObsMap, ObsQuery, RunSet
 
 from .base import ArgSet, Engine, Model, Runnable, RunState, Runtime, tostr
 
@@ -21,59 +21,50 @@ class Step(Runnable):
         self.model = model
         self.engine = engine
 
-    def prepare(self, *args: ArgSet, level: int = 0) -> Sequence[RunSet]:
-        out = list[RunSet]()
+    def prepare(self, args: ArgSet, level: int = 0) -> RunSet:
         prefix = "  " * level
-        for argset in args:
-            print(f"{prefix}->[Step] {self.name}.prepare()")
-            print(tostr("argset", argset, level + 1))
-            # first, ensure that argset satisfy model and engine requirements
-            # next, concatenate the argset with model observables and return it
-            (param_req, param_opt, observ) = self.model.describe(level + 1)
-            hparam = self.engine.describe(level + 1)
-            print(f"{prefix}  param_req={param_req}")
-            print(f"{prefix}  param_opt={param_opt}")
-            print(f"{prefix}  observ={observ}")
-            print(f"{prefix}  hparam={hparam}")
-            print()
-            out.append(([*param_req, *param_opt, *hparam], observ))
-        return out
+        print(f"{prefix}->[Step] {self.name}.prepare()")
+        print(tostr("args", args, level + 1))
+        # first, ensure that args satisfy model and engine requirements
+        # next, concatenate the args with model observables and return it
+        (param_req, param_opt, observ) = self.model.describe(level + 1)
+        hparam = self.engine.describe(level + 1)
+        print(f"{prefix}  param_req={param_req}")
+        print(f"{prefix}  param_opt={param_opt}")
+        print(f"{prefix}  observ={observ}")
+        print(f"{prefix}  hparam={hparam}")
+        print()
+        return RunSet(args={*param_req, *param_opt, *hparam}, obs=observ)
 
-    def run(self, *args: RunSet, runtime: Runtime, level: int = 0) -> Sequence[RunState]:
-        out = list[RunState]()
+    def run(self, run: RunSet, runtime: Runtime, level: int = 0) -> RunState:
         prefix = "  " * level
-        for argset, obsset in args:
-            print(f"{prefix}->[Step] {self.name}.run()")
-            print(tostr("argset", argset, level + 1))
-            print(tostr("obsset", obsset, level + 1))
-            print()
-            status = runtime.run(self.model, self.engine, argset, obsset)
-            out.append(status)
-        return out
-    
-    def poll(self, *args: RunSet, runtime: Runtime, level: int = 0) -> Sequence[RunState]:
-        out = list[RunState]()
-        prefix = "  " * level
-        for argset, obsset in args:
-            print(f"{prefix}->[Step] {self.name}.run()")
-            print(tostr("argset", argset, level + 1))
-            print(tostr("obsset", obsset, level + 1))
-            print()
-            status = runtime.poll(self.model, self.engine, argset, obsset)
-            out.append(status)
-        return out
+        print(f"{prefix}->[Step] {self.name}.run()")
+        print(tostr("args=", run.args, level + 1))
+        print(tostr("obs=", run.obs, level + 1))
+        print()
+        return runtime.run(self.model, self.engine, run)
 
-    def fetch(self, *args: RunSet, runtime: Runtime, level: int = 0, **_) -> Sequence[ObsMap]:
-        out = list[ObsMap]()
+    def poll(self, run: RunSet, runtime: Runtime, level: int = 0) -> RunState:
         prefix = "  " * level
-        for argset, obsset in args:
-            print(f"{prefix}->[Step] {self.name}.fetch()")
-            print(tostr("argset", argset, level + 1))
-            print(tostr("obsset", obsset, level + 1))
-            print()
-            obsmap = runtime.fetch(self.model, self.engine, argset, obsset)
-            out.append(obsmap)
-        return out
+        print(f"{prefix}->[Step] {self.name}.run()")
+        print(tostr("args=", run.args, level + 1))
+        print(tostr("obs=", run.obs, level + 1))
+        print()
+        return runtime.poll(self.model, self.engine, run)
+
+    def fetch(self, run: RunSet, runtime: Runtime, query: ObsQuery = None, level: int = 0) -> ObsMap:
+        prefix = "  " * level
+        print(f"{prefix}->[Step] {self.name}.fetch()")
+        print(tostr("args=", run.args, level + 1))
+        print(tostr("obs=", run.obs, level + 1))
+        print()
+        subquery = set()
+        for key in self.__dir__():
+            attr = getattr(self, key)
+            if isinstance(attr, Observable):
+                if query is None or attr.typing in {o.typing for o in query}:
+                    subquery.add(attr)
+        return runtime.fetch(self.model, self.engine, run, subquery)
 
     def describe(self, level: int = 0) -> None:
         prefix = "  " * level
@@ -87,46 +78,75 @@ class Step(Runnable):
 
 class Experiment(Runnable):
     """
-    A sequence of computational steps where
-    each step depends on the previous step(s).
+    An experiment is a sequence of executable items
+    that could be either an invidual step (i.e. Step),
+    or another experiment (i.e. Experiment).
+
+    * X (expt)
+        * X1 (step)
+        * X2 (expt)
+            * X2.1 (step)
+            * X2.2 (expt)
+                * X2.2.1 (step)
+                * X2.2.2 (step)
+            * X2.3 (step)
+        * X3 (step)
 
     """
 
     def __init__(self, name: str, *steps: Step | Experiment) -> None:
+        """
+        Define an experiment with a name and a sequence of steps
+
+        """
         assert len(steps) > 0
         super().__init__(name)
         self.steps = steps
 
     def __rshift__(self, other: Experiment) -> Experiment:
+        """
+        Combine two experiments into a single experiment
+        in a non-mutating way.
+
+        """
         if not isinstance(other, Experiment):
             raise TypeError(f"Unsupported operand type(s) for >>: 'Experiment' and '{type(other).__name__}'")
         return Experiment(f"{self.name}+{other.name}", self, other)
 
     def __str__(self) -> str:
+        """
+        Return a string representation of the experiment
+        """
         return f"name=[{self.name}], steps=[" + ">>".join([s.name for s in self.steps]) + "]"
 
-    def prepare(self, *args: ArgSet, level: int = 0) -> Sequence[RunSet]:
-        # TODO improve loop structure
-        from .util_composition import create_next_argset, create_next_obsset
+    def prepare(self, args: ArgSet, level: int = 0) -> RunSet:
+        """
+        Prepare the experiment by identifying the
+        inputs (argsets) and outputs (obsets) for the experiment.
+        """
+        from .util_composition import split, union_a
 
         # do an independent run for each argset
         prefix = "  " * level
-        runsets = list[RunSet]()
-        for prev_argset in args:
-            print(f"{prefix}->[Experiment] {self.name}.prepare()")
-            # no observations in the beginning
-            next_argset = prev_argset
-            prev_obsset = []
-            for step in self.steps:
-                prev_argset = next_argset
-                # step_argset is the subset of args that's used by step
-                (step_argset, step_obsset) = step.prepare(prev_argset, level=level + 1)[0]
-                next_argset = create_next_argset(prev_argset, step_obsset)
-                next_obsset = create_next_obsset(prev_obsset, step_obsset)
-            # append final runset
-            runsets.append((prev_argset, next_obsset))
+        print(f"{prefix}->[Experiment] {self.name}.prepare()")
+        # setup iteration variables
+        uA = set()
+        uO = set()
+        for step in self.steps:
+            # step_args is the subset of args that's used by step
+            (a, o) = step.prepare(args, level=level + 1)
+            uA.update(a)
+            uO.update(o)
+            args = union_a(args, o)
 
-        return runsets
+        # validate external args, reused, and external obs
+        external_args, reused, external_obs = split(uA, uO)
+        assert len(external_args.difference(args)) == 0, "Some external args are not provided"
+        assert len(reused) > 0, "Experiment has mutually exclusive steps"
+        assert uO.intersection(external_obs) == external_obs, "Experiment generates no external obs"
+
+        # return (essential args, and generated obs
+        return RunSet(args=external_args, obs=uO)
 
     def describe(self, level: int = 0) -> None:
         prefix = "  " * level
@@ -135,64 +155,48 @@ class Experiment(Runnable):
         for step in self.steps:
             step.describe(level + 1)
 
-    def run(self, *args: RunSet, runtime: Runtime, level: int = 0) -> Sequence[Sequence[RunState]]:
-        # TODO improve loop structure
-        out = list[list[RunState]]()
+    def run(self, run: RunSet, runtime: Runtime, level: int = 0) -> Iterator[RunState]:
         prefix = "  " * level
-        for argset, obsset in args:
-            print(f"{prefix}->[Experiment] {self.name}.run()")
-            status = list[RunState]()
-            for step in self.steps:
-                # check if the step was successfully queued
-                if isinstance(step, Experiment):
-                    state = step.run((argset, obsset), runtime=runtime, level=level + 1)[0]
-                    for s in state:
-                        if s != "QUEUED":
-                            raise RuntimeError(f"Failed to queue step=[{step.name}]")
-                elif isinstance(step, Step):
-                    state = step.run((argset, obsset), runtime=runtime, level=level + 1)[0]
+        # performing an end-to-end experiment run on a single runset
+        print(f"{prefix}->[Experiment] {self.name}.run()")
+        for step in self.steps:
+            # check if the step was successfully queued
+            if isinstance(step, Experiment):
+                # run each step in sequence
+                for state in step.run(run, runtime=runtime, level=level + 1):
                     if state != "QUEUED":
-                        raise RuntimeError(f"Failed to queue step=[{step.name}]")
-                else:
-                    raise ValueError(f"Unsupported step type=[{type(step).__name__}]")
-                # append the state to the status list
-                status.append("QUEUED")
-            out.append(status)
-        return out
+                        raise RuntimeError(f"Failed step=[{step.name}]")
+            elif isinstance(step, Step):
+                state = step.run(run, runtime=runtime, level=level + 1)
+                if state != "QUEUED":
+                    raise RuntimeError(f"Failed to queue step=[{step.name}]")
+            else:
+                raise ValueError(f"Unsupported step type=[{type(step).__name__}]")
+            # append the state to the status list
+            yield "QUEUED"
 
-    def poll(self, *args: RunSet, runtime: Runtime, level: int = 0) -> Sequence[Sequence[RunState]]:
-        # TODO improve loop structure
-        out = []
+    def poll(self, run: RunSet, runtime: Runtime, level: int = 0) -> Iterator[RunState]:
         prefix = "  " * level
-        for argset, obsset in args:
-            print(f"{prefix}->[Experiment] {self.name}.run()")
-            status = list[RunState]()
-            for step in self.steps:
-                # check if the step was successfully queued
-                if isinstance(step, Experiment):
-                    state = step.poll((argset, obsset), runtime=runtime, level=level + 1)[0]
-                    for s in state:
-                        if s != "COMPLETED":
-                            raise RuntimeError(f"Failed to complete step=[{step.name}]")
-                elif isinstance(step, Step):
-                    state = step.poll((argset, obsset), runtime=runtime, level=level + 1)[0]
+        print(f"{prefix}->[Experiment] {self.name}.run()")
+        for step in self.steps:
+            # check if the step was successfully queued
+            if isinstance(step, Experiment):
+                for state in step.poll(run, runtime=runtime, level=level + 1):
                     if state != "COMPLETED":
                         raise RuntimeError(f"Failed to complete step=[{step.name}]")
-                else:
-                    raise ValueError(f"Unsupported step type=[{type(step).__name__}]")
-            out.append(status)
-        return out
+            elif isinstance(step, Step):
+                state = step.poll(run, runtime=runtime, level=level + 1)
+                if state != "COMPLETED":
+                    raise RuntimeError(f"Failed to complete step=[{step.name}]")
+            else:
+                raise ValueError(f"Unsupported step type=[{type(step).__name__}]")
+            yield state
 
-    def fetch(self, *args: RunSet, runtime: Runtime, observables: ObsQuery = None, level: int = 0) -> Sequence[ObsMap]:
-        out = list[ObsMap]()
+    def fetch(self, run: RunSet, runtime: Runtime, query: ObsQuery = None, level: int = 0) -> ObsMap:
         prefix = "  " * level
-        for argset, obsset in args:
-            print(f"{prefix}->[Experiment] {self.name}.fetch()")
-            cond = lambda c: True if observables is None else c in observables
-            O = [c for c in obsset if cond(c)]
-            argset_obs = dict()
-            for step in self.steps:
-                result = step.fetch((argset, O), runtime=runtime, level=level + 1)[0]
-                argset_obs.update(result)
-            out.append(argset_obs)
-        return out
+        print(f"{prefix}->[Experiment] {self.name}.fetch()")
+        obs = dict()
+        for step in self.steps:
+            result = step.fetch(run, runtime=runtime, level=level + 1)
+            obs.update(result)
+        return obs

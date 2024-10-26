@@ -58,7 +58,7 @@ class DataLoader:
     def get_all_models(self) -> dict[str, ModelSpec]:
         models = dict[str, ModelSpec]()
         for fp in self.models_dir.glob("*/*.yml"):
-            key = f"{fp.parent.stem}_{fp.stem}"
+            key = f"{fp.parent.stem}/{fp.stem}"
             fp.parent.stem
             print("[Model]", key)
             m = ModelSpec(**load_yaml(fp))
@@ -77,7 +77,7 @@ class DataLoader:
     def list_all_sources(self) -> dict[str, SourceSpec]:
         sources = dict[str, str]()
         for fp in self.sources_dir.glob("*"):
-            key = f"{fp.parent.stem}_{fp.stem}"
+            key = fp.stem
             print("[Source]", key)
             s = SourceSpec(fp.as_posix())
             sources[key] = s

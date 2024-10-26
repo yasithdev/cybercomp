@@ -21,7 +21,7 @@ class API:
     """
 
     def __init__(self, server_url: str, base_path: Path) -> None:
-        self.models = dict[str, ModelSpec]()
+        self.models = dict[str, dict[str, ModelSpec]]()
         self.engines = dict[str, EngineSpec]()
         self.types = dict[str, TypeSpec]()
         self.sources = dict[str, SourceSpec]()
@@ -52,10 +52,13 @@ class API:
     def load_models(self) -> None:
         data: dict[str, Any] = get(f"{self.server_url}/models").json()
         for key, model in data.items():
+            module, name = key.rsplit("/", maxsplit=1)
             print("[Model] Loaded", key)
             m = ModelSpec(**model)
             m.validate(self.types)
-            self.models[key] = m
+            if module not in self.models:
+                self.models[module] = {}
+            self.models[module][name] = m
         self.generate_model_stubs()
 
     def load_engines(self) -> None:
@@ -97,52 +100,65 @@ class API:
         model_dir = self.out_dir / "models"
         model_dir.mkdir(parents=True, exist_ok=True)
 
-        # generate independent class files
-        for model_id, model in self.models.items():
-            fp = model_dir / f"{model_id}.py"
-
-            rparams = dict[str, str]()
-            dparams = dict[str, str]()
-            oparams = dict[str, str]()
-
-            for k, v in model.parameters.items():
-                default = v.default
-                if default is None:
-                    rparams[k] = f"RequiredParameter({k})"
-                else:
-                    dparams[k] = f"DefaultParameter({k}, {repr(default)})"
-            
-            for k in model.observables:
-                oparams[k] = f"Observable({k})"
-
-            code = generate_class_py(
-                imports=[
-                    ("cybercomp", "Model"),
-                    ("cybercomp", "RequiredParameter"),
-                    ("cybercomp", "DefaultParameter"),
-                    ("cybercomp", "Observable"),
-                    ("..types", "*"),
-                ],
-                class_name=model_id,
-                class_bases=["Model"],
-                docstring=model.description,
-                fixed_typeless_params={**dparams, **rparams, **oparams},
-                # functions={"__call__": recipe_to_fs(model.run)} # TODO fix this
-            )
-            code = black.format_str(code, mode=black.Mode())
-            with open(fp, "w") as f:
-                f.write(code)
-            print("[Model] Created", fp.as_posix())
-
-        # generate __init__.py for model imports
+        # generate __init__.py for base module
         fp = model_dir / f"__init__.py"
-        code = generate_module(
-            imports=list((f".{k}", k) for k in self.models.keys()),
-        )
+        code = generate_module(imports=list((f".", k) for k in self.models.keys()))
         code = black.format_str(code, mode=black.Mode())
         with open(fp, "w") as f:
             f.write(code)
         print("[Module] Created", fp.as_posix())
+
+        # generate independent class files
+        for module, models in self.models.items():
+            module_dir = model_dir / module
+            module_dir.mkdir(parents=True, exist_ok=True)
+
+            # generate __init__.py for module
+            fp = module_dir / f"__init__.py"
+            code = generate_module(
+                imports=list((f".{k}", k) for k in models.keys()),
+            )
+            code = black.format_str(code, mode=black.Mode())
+            with open(fp, "w") as f:
+                f.write(code)
+            print("[Module] Created", fp.as_posix())
+
+            # generate class files inside module
+            for model_id, model in models.items():
+                fp = module_dir / f"{model_id}.py"
+
+                rparams = dict[str, str]()
+                dparams = dict[str, str]()
+                oparams = dict[str, str]()
+
+                for k, v in model.parameters.items():
+                    default = v.default
+                    if default is None:
+                        rparams[k] = f"RequiredParameter({k})"
+                    else:
+                        dparams[k] = f"DefaultParameter({k}, {repr(default)})"
+
+                for k in model.observables:
+                    oparams[k] = f"Observable({k})"
+
+                code = generate_class_py(
+                    imports=[
+                        ("cybercomp", "Model"),
+                        ("cybercomp", "RequiredParameter"),
+                        ("cybercomp", "DefaultParameter"),
+                        ("cybercomp", "Observable"),
+                        ("...types", "*"),
+                    ],
+                    class_name=model_id,
+                    class_bases=["Model"],
+                    docstring=model.description,
+                    fixed_typeless_params={**dparams, **rparams, **oparams},
+                    # functions={"__call__": recipe_to_fs(model.run)} # TODO fix this
+                )
+                code = black.format_str(code, mode=black.Mode())
+                with open(fp, "w") as f:
+                    f.write(code)
+                print("[Model] Created", fp.as_posix())
 
     def generate_engine_stubs(self):
         engine_dir = self.out_dir / "engines"

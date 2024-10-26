@@ -15,7 +15,7 @@ def infer_substituted_params(template, generated_output):
     match = re.match(regex_pattern, generated_output)
     if match:
         values = match.groups()
-        # Step 4: Create a dictionary mapping placeholders to extracted values
+        # Step 4: Create a dictionary of placeholders and extracted values
         mapping = {placeholders[i]: values[i] for i in range(len(placeholders))}
         return mapping
     else:

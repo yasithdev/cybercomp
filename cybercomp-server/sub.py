@@ -63,7 +63,7 @@ def substitute_all(
     # overwrite target_dir with generated files
     for template in templates:
         # substitute source template with given params
-        content = substitute_single(source_dir / template.file, template.args, args)
+        content = substitute_single(source_dir / template.file, template.params, args)
         # store generate file in target_dir
         with open(target_dir / template.file, "w") as f:
             f.write(content)

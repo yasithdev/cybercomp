@@ -63,7 +63,7 @@ def sub():
 def browse(dir_path: str):
     base_path = Path(app.config["UPLOAD_FOLDER"])
     abs_dir_path = base_path / dir_path
-    files = list(abs_dir_path.glob("**/*"))
+    files = sorted(x for x in abs_dir_path.glob("**/*") if x.is_file())
     filenames = map(lambda x: x.relative_to(abs_dir_path).as_posix(), files)
     filesizes = map(lambda x: naturalsize(x.stat().st_size), files)
     return render_template("browse.html", files=zip(filenames, filesizes), base_path=dir_path)
