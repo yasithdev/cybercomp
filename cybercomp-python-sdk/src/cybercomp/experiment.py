@@ -39,30 +39,30 @@ class Step(Runnable):
         assert self.config is not None, "Step.setup() must be called first"
         prefix = "  " * level
         print(f"{prefix}->[Step] {self.name}.run()")
-        print(tostr("p=", self.config.params, level + 1))
-        print(tostr("h=", self.config.hparams, level + 1))
-        print(tostr("o=", self.config.obs, level + 1))
-        print()
-        return runtime.run(self)
+        # print(tostr("p=", self.config.params, level + 1))
+        # print(tostr("h=", self.config.hparams, level + 1))
+        # print(tostr("o=", self.config.obs, level + 1))
+        # print()
+        return runtime.run(self, level)
 
     def poll(self, runtime: Runtime, level: int = 0) -> RunState:
         assert self.config is not None, "Step.run() must be called first"
         prefix = "  " * level
-        print(f"{prefix}->[Step] {self.name}.run()")
-        print(tostr("p=", self.config.params, level + 1))
-        print(tostr("h=", self.config.hparams, level + 1))
-        print(tostr("o=", self.config.obs, level + 1))
-        print()
+        print(f"{prefix}->[Step] {self.name}.poll()")
+        # print(tostr("p=", self.config.params, level + 1))
+        # print(tostr("h=", self.config.hparams, level + 1))
+        # print(tostr("o=", self.config.obs, level + 1))
+        # print()
         return runtime.poll(self)
 
     def fetch(self, runtime: Runtime, query: ObsQuery = None, level: int = 0) -> ObsMap:
         assert self.config is not None, "Step.run() must be called first"
         prefix = "  " * level
         print(f"{prefix}->[Step] {self.name}.fetch()")
-        print(tostr("p=", self.config.params, level + 1))
-        print(tostr("h=", self.config.hparams, level + 1))
-        print(tostr("o=", self.config.obs, level + 1))
-        print()
+        # print(tostr("p=", self.config.params, level + 1))
+        # print(tostr("h=", self.config.hparams, level + 1))
+        # print(tostr("o=", self.config.obs, level + 1))
+        # print()
         subquery = set()
         for key in self.__dir__():
             attr = getattr(self, key)
@@ -141,6 +141,7 @@ class Experiment(Runnable):
             # step_args is the subset of args that's used by step
             step.setup(args, level=level + 1)
             assert step.config is not None
+            # ensure all observables are initialized, if not initialize them
             args = union_a(args, step.config.obs)
             uP.update(step.config.params)
             uH.update(step.config.hparams)

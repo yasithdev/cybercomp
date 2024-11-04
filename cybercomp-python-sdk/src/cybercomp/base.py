@@ -40,6 +40,9 @@ class Model:
 
     """
 
+    run_engines: list[str]
+    run_command: str
+
     @classmethod
     def describe(cls, level: int = 0, silent: bool = False) -> tuple[set[Parameter], set[Observable]]:
         """
@@ -272,7 +275,7 @@ class Runtime(ABC):
     history = {}
 
     @abstractmethod
-    def run(self, step: Step) -> RunState:
+    def run(self, step: Step, level: int = 0) -> RunState:
         """
         Run a computational step
 

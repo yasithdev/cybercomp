@@ -34,13 +34,6 @@ Specification for a source code
 """
 
 
-CategorySpec = dict[str, TypeSpec]
-"""
-Specification for a category of semantic types
-
-"""
-
-
 class RecipeSpec(BaseModel):
     """
     Specification for a recipe to run a (model, experiment) pair
@@ -86,4 +79,3 @@ class ModelSpec(BaseModel):
             slot_type = get_canonical_type(specs[key].type)
             if spec_type != slot_type:
                 raise TypeError(f"parameter {key}: {spec_type} does not match type={slot_type}")
-        print("[Model] Validated")

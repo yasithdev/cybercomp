@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import black
+from tqdm import tqdm
 from requests import get
 
 from .codegen import generate_class_py, generate_module
@@ -40,41 +41,46 @@ class API:
         self.load_models()
         self.load_engines()
         self.load_sources()
+        print("Completions generated at:", self.out_dir.absolute().as_posix())
 
     def load_types(self) -> None:
         data: dict[str, Any] = get(f"{self.server_url}/types").json()
-        for key, typ in data.items():
-            print("[Type] Loaded", key)
+        pbar = tqdm(data.items(), desc="[Types] ")
+        for key, typ in pbar:
             t = TypeSpec(**typ)
             self.types[key] = t
+            pbar.set_postfix_str(key)
         self.generate_types_stubs()
 
     def load_models(self) -> None:
         data: dict[str, Any] = get(f"{self.server_url}/models").json()
-        for key, model in data.items():
+        pbar = tqdm(data.items(), desc="[Models] ")
+        for key, model in pbar:
             module, name = key.rsplit("/", maxsplit=1)
-            print("[Model] Loaded", key)
             m = ModelSpec(**model)
             m.validate(self.types)
             if module not in self.models:
                 self.models[module] = {}
             self.models[module][name] = m
+            pbar.set_postfix_str(key)
         self.generate_model_stubs()
 
     def load_engines(self) -> None:
         data: dict[str, Any] = get(f"{self.server_url}/engines").json()
-        for key, engine in data.items():
-            print("[Engine] Loaded", key)
+        pbar = tqdm(data.items(), desc="[Engines] ")
+        for key, engine in pbar:
             e = EngineSpec(**engine)
             self.engines[key] = e
+            pbar.set_postfix_str(key)
         self.generate_engine_stubs()
 
     def load_sources(self) -> None:
         data: dict[str, Any] = get(f"{self.server_url}/sources").json()
-        for key, source in data.items():
-            print("[Source] Loaded", key)
+        pbar = tqdm(data.items(), desc="[Sources] ")
+        for key, source in pbar:
             s = SourceSpec(source)
             self.sources[key] = s
+            pbar.set_postfix_str(key)
 
     def generate_types_stubs(self):
         typ_dir = self.out_dir / "types"
@@ -94,7 +100,7 @@ class API:
         fp = typ_dir / f"__init__.py"
         with open(fp, "w") as f:
             f.write(code)
-        print("[Type] Created", fp.as_posix())
+        # print("[Type] Created", fp.as_posix())
 
     def generate_model_stubs(self):
         model_dir = self.out_dir / "models"
@@ -106,7 +112,7 @@ class API:
         code = black.format_str(code, mode=black.Mode())
         with open(fp, "w") as f:
             f.write(code)
-        print("[Module] Created", fp.as_posix())
+        # print("[Module] Created", fp.as_posix())
 
         # generate independent class files
         for module, models in self.models.items():
@@ -121,7 +127,7 @@ class API:
             code = black.format_str(code, mode=black.Mode())
             with open(fp, "w") as f:
                 f.write(code)
-            print("[Module] Created", fp.as_posix())
+            # print("[Module] Created", fp.as_posix())
 
             # generate class files inside module
             for model_id, model in models.items():
@@ -141,6 +147,10 @@ class API:
                 for k in model.observables:
                     oparams[k] = f"Observable({k})"
 
+                # generate run information
+                run_engines = model.run.engine
+                run_command = model.run.command
+
                 code = generate_class_py(
                     imports=[
                         ("cybercomp", "Model"),
@@ -152,13 +162,18 @@ class API:
                     class_name=model_id,
                     class_bases=["Model"],
                     docstring=model.description,
-                    fixed_typeless_params={**dparams, **rparams, **oparams},
-                    # functions={"__call__": recipe_to_fs(model.run)} # TODO fix this
+                    fixed_typeless_params={
+                        **dparams,
+                        **rparams,
+                        **oparams,
+                        "run_engines": repr(run_engines),
+                        "run_command": repr(run_command),
+                    },
                 )
                 code = black.format_str(code, mode=black.Mode())
                 with open(fp, "w") as f:
                     f.write(code)
-                print("[Model] Created", fp.as_posix())
+                # print("[Model] Created", fp.as_posix())
 
     def generate_engine_stubs(self):
         engine_dir = self.out_dir / "engines"
@@ -190,7 +205,7 @@ class API:
             code = black.format_str(code, mode=black.Mode())
             with open(fp, "w") as f:
                 f.write(code)
-            print("[engine] Created", fp.as_posix())
+            # print("[engine] Created", fp.as_posix())
 
         # generate __init__.py for engine imports
         fp = engine_dir / f"__init__.py"
@@ -199,4 +214,4 @@ class API:
         )
         with open(fp, "w") as f:
             f.write(code)
-        print("[Module] Created", fp.as_posix())
+        # print("[Module] Created", fp.as_posix())

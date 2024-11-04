@@ -6,7 +6,7 @@ Loads Type Definitions from YAML
 from pathlib import Path
 from typing import Any
 
-from cybercomp.specs import CategorySpec, EngineSpec, ModelSpec, TypeSpec, SourceSpec
+from cybercomp.specs import EngineSpec, ModelSpec, SourceSpec, TypeSpec
 from yaml import safe_load
 
 
@@ -46,13 +46,6 @@ class DataLoader:
             types.update(v.observables)
         for key, v in engines.items():
             types.update(v.parameters)
-        # for fp in self.types_dir.glob("*.yml"):
-        #     key = fp.stem
-        #     print("[Type]", key)
-        #     c = CategorySpec(**{k: TypeSpec(**v) for k, v in load_yaml(fp).items()})
-        #     # prefix each type with its category
-        #     for k, v in c.items():
-        #         types[f"{key}_{k}"] = v
         return types
 
     def get_all_models(self) -> dict[str, ModelSpec]:
