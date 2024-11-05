@@ -74,7 +74,7 @@ def run_async(experiment: Experiment, args: Args, runtime: Runtime) -> Iterator[
     @return: the current execution state
 
     """
-    experiment.prepare(args)
+    experiment.setup(args)
     return experiment.run(runtime=runtime)
 
 
@@ -89,7 +89,7 @@ def run_sync(experiment: Experiment, args: Args, runtime: Runtime) -> RunState:
     @return: the current execution state
 
     """
-    experiment.prepare(args)
+    experiment.setup(args)
     return experiment.run_sync(runtime=runtime)
 
 

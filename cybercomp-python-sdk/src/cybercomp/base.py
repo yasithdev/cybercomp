@@ -80,11 +80,15 @@ class Model:
         params: set[Parameter],
     ) -> None:
         """
-        Update the model with the given parameters
+        Update the model with the given parameters, and fill in missing observables
 
         """
         for p in params:
             setattr(self, p.__class__.__name__, p)
+        for key in self.__dir__():
+            attr = getattr(self, key)
+            if isinstance(attr, Observable) and not attr.initialized:
+              attr(f"/{hash(attr)}")
 
 
 class Engine:

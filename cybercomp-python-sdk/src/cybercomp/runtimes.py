@@ -29,15 +29,19 @@ class LocalRuntime(Runtime):
         print(f"{prefix}->[LocalRuntime] run()")
         # generate the command to run - simple substitution for now
         assert step.config is not None
-        data = {}
+        data = dict(parameters={}, hyperparameters={}, observables={})
         for p in step.config.params:
             k, v = p.typing.__name__, p.value
-            assert k not in data
-            data[f"parameters.{k}"] = v
+            assert k not in data["parameters"]
+            data["parameters"][k] = v
         for h in step.config.hparams:
             k, v = h.typing.__name__, h.value
-            assert k not in data
-            data[f"hyperparameters.{k}"] = v
+            assert k not in data["hyperparameters"]
+            data["hyperparameters"][k] = v
+        for o in step.config.obs:
+            k, v = o.typing.__name__, o.value
+            assert k not in data["observables"]
+            data["observables"][k] = v
         command = render(step.model.run_command, data).strip()
         print(f"{prefix}    model=  {step.model.__class__.__name__}")
         print(f"{prefix}    engine= {step.engine.__class__.__name__}")
