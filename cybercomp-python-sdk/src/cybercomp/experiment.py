@@ -5,7 +5,7 @@ from typing import Iterator
 
 from cybercomp.base import Args, Observable, ObsMap, ObsQuery, RunConfig
 
-from .base import Args, Engine, Hyperparameter, Model, Observable, Parameter, Runnable, RunState, Runtime, tostr
+from .base import Args, Engine, Hyperparameter, Model, Observable, Parameter, Runnable, RunState, Runtime
 
 
 class Step(Runnable):
@@ -24,7 +24,7 @@ class Step(Runnable):
 
     def setup(self, args: Args, level: int = 0) -> Step:
         prefix = "  " * level
-        print(f"{prefix}->[Step] {self.name}.setup()")
+        print(f"{prefix}* [Step] {self.name}.setup()")
         # assign args
         P = {a for a in args if isinstance(a, Parameter)}
         H = {a for a in args if isinstance(a, Hyperparameter)}
@@ -38,45 +38,32 @@ class Step(Runnable):
     def run(self, runtime: Runtime, level: int = 0) -> RunState:
         assert self.config is not None, "Step.setup() must be called first"
         prefix = "  " * level
-        print(f"{prefix}->[Step] {self.name}.run()")
-        # print(tostr("p=", self.config.params, level + 1))
-        # print(tostr("h=", self.config.hparams, level + 1))
-        # print(tostr("o=", self.config.obs, level + 1))
-        # print()
+        print(f"{prefix}* [Step] {self.name}.run()")
         return runtime.run(self, level)
 
     def poll(self, runtime: Runtime, level: int = 0) -> RunState:
         assert self.config is not None, "Step.run() must be called first"
         prefix = "  " * level
-        print(f"{prefix}->[Step] {self.name}.poll()")
-        # print(tostr("p=", self.config.params, level + 1))
-        # print(tostr("h=", self.config.hparams, level + 1))
-        # print(tostr("o=", self.config.obs, level + 1))
-        # print()
-        return runtime.poll(self)
+        print(f"{prefix}* [Step] {self.name}.poll()")
+        return runtime.poll(self, level)
 
     def fetch(self, runtime: Runtime, query: ObsQuery = None, level: int = 0) -> ObsMap:
         assert self.config is not None, "Step.run() must be called first"
         prefix = "  " * level
-        print(f"{prefix}->[Step] {self.name}.fetch()")
-        # print(tostr("p=", self.config.params, level + 1))
-        # print(tostr("h=", self.config.hparams, level + 1))
-        # print(tostr("o=", self.config.obs, level + 1))
-        # print()
+        print(f"{prefix}* [Step] {self.name}.fetch()")
         subquery = set()
         for key in self.__dir__():
             attr = getattr(self, key)
             if isinstance(attr, Observable):
                 if query is None or attr.typing in {o.typing for o in query}:
                     subquery.add(attr)
-        return runtime.fetch(self, subquery)
+        return runtime.fetch(self, subquery, level)
 
     def describe(self, level: int = 0) -> None:
         prefix = "  " * level
-        print(f"{prefix}->[Step] {self.name}")
+        print(f"{prefix}* [Step] {self.name}")
         print(f"{prefix}  model={self.model.__class__.__name__}")
         print(f"{prefix}  engine={self.engine.__class__.__name__}")
-        print()
         self.model.describe(level + 1)
         self.engine.describe(level + 1)
 
@@ -132,7 +119,7 @@ class Experiment(Runnable):
 
         # do an independent run for each Args
         prefix = "  " * level
-        print(f"{prefix}->[Experiment] {self.name}.setup()")
+        print(f"{prefix}* [Experiment] {self.name}.setup()")
         # setup iteration variables
         uP = set()
         uH = set()
@@ -158,19 +145,22 @@ class Experiment(Runnable):
         # update the configuration
         self.config = RunConfig(ext_P, ext_H, uO)
 
+        # update the path in experiment steps
+        for step in self.steps:
+            assert step.config is not None
+            step.config.dir_name = self.config.dir_name + step.config.dir_name
         return self
 
     def describe(self, level: int = 0) -> None:
         prefix = "  " * level
-        print(f"{prefix}->[Experiment] {self.name}")
-        print()
+        print(f"{prefix}* [Experiment] {self.name}")
         for step in self.steps:
             step.describe(level + 1)
 
     def run(self, runtime: Runtime, level: int = 0) -> Iterator[RunState]:
         prefix = "  " * level
         # performing an end-to-end experiment run on a single RunConfig
-        print(f"{prefix}->[Experiment] {self.name}.run()")
+        print(f"{prefix}* [Experiment] {self.name}.run()")
         for step in self.steps:
             # check if the step was successfully queued
             if isinstance(step, Experiment):
@@ -189,7 +179,7 @@ class Experiment(Runnable):
 
     def run_sync(self, runtime: Runtime, dt: int = 1, level: int = 0) -> RunState:
         prefix = "  " * level
-        print(f"{prefix}->[Experiment] {self.name}.run_sync()")
+        print(f"{prefix}* [Experiment] {self.name}.run_sync()")
 
         # start the experiment
         for state in self.run(runtime=runtime, level=level + 1):
@@ -211,7 +201,7 @@ class Experiment(Runnable):
 
     def poll(self, runtime: Runtime, level: int = 0) -> Iterator[RunState]:
         prefix = "  " * level
-        print(f"{prefix}->[Experiment] {self.name}.run()")
+        print(f"{prefix}* [Experiment] {self.name}.poll()")
         for step in self.steps:
             # check if the step was successfully queued
             if isinstance(step, Experiment):
@@ -228,7 +218,7 @@ class Experiment(Runnable):
 
     def fetch(self, runtime: Runtime, query: ObsQuery = None, level: int = 0) -> ObsMap:
         prefix = "  " * level
-        print(f"{prefix}->[Experiment] {self.name}.fetch()")
+        print(f"{prefix}* [Experiment] {self.name}.fetch()")
         obs = dict()
         for step in self.steps:
             result = step.fetch(runtime=runtime, query=query, level=level + 1)

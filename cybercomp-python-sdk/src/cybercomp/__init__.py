@@ -8,7 +8,6 @@ from .base import (
     Parameter,
     RequiredParameter,
     Runtime,
-    tostr
 )
 from .service import API
 from .experiment import Step
@@ -25,5 +24,4 @@ __all__ = [
     "Runtime",
     "API",
     "Step",
-    "tostr"
 ]

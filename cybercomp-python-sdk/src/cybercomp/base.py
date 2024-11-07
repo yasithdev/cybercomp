@@ -8,13 +8,6 @@ Step = Any  # NOTE - don't import the real class, as it causes circular imports
 T = TypeVar("T", contravariant=True)
 RunState = Literal["QUEUED", "RUNNING", "COMPLETED", "FAILED"]
 
-
-def tostr(name, x, level: int = 0):
-    prefix = "  " * level
-    prefixln = "\n" + prefix
-    return prefix + name + "=[" + prefixln + "  " + (",\n  " + prefix).join([*map(str, x)]) + prefixln + "]"
-
-
 # --------------------------------------------
 # Base Types
 # --------------------------------------------
@@ -68,11 +61,10 @@ class Model:
                 ob.add(e)
         prefix = "  " * level
         if not silent:
-            print(f"{prefix}->[Model] {cls.__name__}")
-            print(f"{prefix}  parameters [w/default] ({len(op)}):", [*map(str, op)])
-            print(f"{prefix}  parameters [required] ({len(rp)}):", [*map(str, rp)])
-            print(f"{prefix}  observables ({len(ob)}):", [*map(str, ob)])
-            print()
+            print(f"{prefix}* [Model] {cls.__name__}")
+            print(f"{prefix}  - params?: {len(op)}", [*map(str, op)])
+            print(f"{prefix}  - params!: {len(rp)}", [*map(str, rp)])
+            print(f"{prefix}  - observ : {len(ob)}", [*map(str, ob)])
         return {*rp, *op}, ob
 
     def update(
@@ -88,7 +80,7 @@ class Model:
         for key in self.__dir__():
             attr = getattr(self, key)
             if isinstance(attr, Observable) and not attr.initialized:
-              attr(f"/{hash(attr)}")
+                attr(f"./{hash(attr)}")
 
 
 class Engine:
@@ -114,9 +106,8 @@ class Engine:
                 thp.add(v)
         prefix = "  " * level
         if not silent:
-            print(f"{prefix}->[Engine] {cls.__name__}")
-            print(f"{prefix}  hyperparameters ({len(hp)}):", hp)
-            print()
+            print(f"{prefix}* [Engine] {cls.__name__}")
+            print(f"{prefix}  - hparams: {len(hp)} >", hp)
         return thp
 
     def update(
@@ -250,10 +241,16 @@ Hparams = set[Hyperparameter]
 Obs = set[Observable]
 
 
-class RunConfig(NamedTuple):
+class RunConfig:
     params: Params
     hparams: Hparams
     obs: Obs
+
+    def __init__(self, params: Params, hparams: Hparams, obs: Obs) -> None:
+        self.params = params
+        self.hparams = hparams
+        self.obs = obs
+        self.dir_name = hash(frozenset(params)) + hash(frozenset(hparams)) + hash(frozenset(obs))
 
 
 Observation = Any
@@ -289,7 +286,7 @@ class Runtime(ABC):
         """
 
     @abstractmethod
-    def poll(self, step: Step) -> RunState:
+    def poll(self, step: Step, level: int = 0) -> RunState:
         """
         Poll the execution state of a computational step
 
@@ -299,7 +296,7 @@ class Runtime(ABC):
         """
 
     @abstractmethod
-    def fetch(self, step: Step, query: ObsQuery) -> ObsMap:
+    def fetch(self, step: Step, query: ObsQuery, level: int = 0) -> ObsMap:
         """
         Fetch observations from a completed computational step
 
