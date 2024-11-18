@@ -18,16 +18,16 @@ class LocalRuntime(Runtime):
         self.reuse_past_runs = reuse_past_runs
 
     def __enter__(self):
-        print(f"\nAcquiring resource: {self.__class__.__name__}")
+        print(f"\n---- Acquiring resource: {self.__class__.__name__} ----")
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        print(f"\nReleasing resource: {self.__class__.__name__}")
+        print(f"---- Releasing resource: {self.__class__.__name__} ----\n")
 
     def run(self, step: Step, level: int = 0) -> RunState:
         # TODO correctly implement this
         prefix = "  " * level
-        print(f"{prefix}* [LocalRuntime] run()")
+        print(f"{prefix}* [Run] Runtime={self.__class__.__name__}")
         # generate the command to run - simple substitution for now
         assert step.config is not None
         data = dict(parameters={}, hyperparameters={}, observables={})
@@ -52,7 +52,7 @@ class LocalRuntime(Runtime):
     def poll(self, step: Step, level: int = 0) -> RunState:
         # TODO correctly implement this
         prefix = "  " * level
-        print(f"{prefix}* [LocalRuntime] poll()")
+        print(f"{prefix}* [Poll] Runtime={self.__class__.__name__}")
         print(f"{prefix}  - model : {step.model.__class__.__name__}")
         print(f"{prefix}  - engine: {step.engine.__class__.__name__}")
         assert step.config is not None
@@ -61,7 +61,7 @@ class LocalRuntime(Runtime):
     def fetch(self, step: Step, query: ObsQuery, level: int = 0) -> ObsMap:
         # TODO correctly implement this
         prefix = "  " * level
-        print(f"{prefix}* [LocalRuntime] fetch()")
+        print(f"{prefix}* [Fetch] Runtime={self.__class__.__name__}")
         print(f"{prefix}  - model : {step.model.__class__.__name__}")
         print(f"{prefix}  - engine: {step.engine.__class__.__name__}")
         assert step.config is not None

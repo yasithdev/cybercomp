@@ -24,7 +24,7 @@ class Step(Runnable):
 
     def setup(self, args: Args, level: int = 0) -> Step:
         prefix = "  " * level
-        print(f"{prefix}* [Step] {self.name}.setup()")
+        print(f"{prefix}* [Setup] Step={self.name}")
         # assign args
         P = {a for a in args if isinstance(a, Parameter)}
         H = {a for a in args if isinstance(a, Hyperparameter)}
@@ -38,19 +38,19 @@ class Step(Runnable):
     def run(self, runtime: Runtime, level: int = 0) -> RunState:
         assert self.config is not None, "Step.setup() must be called first"
         prefix = "  " * level
-        print(f"{prefix}* [Step] {self.name}.run()")
+        print(f"{prefix}* [Run] Step={self.name}")
         return runtime.run(self, level)
 
     def poll(self, runtime: Runtime, level: int = 0) -> RunState:
         assert self.config is not None, "Step.run() must be called first"
         prefix = "  " * level
-        print(f"{prefix}* [Step] {self.name}.poll()")
+        print(f"{prefix}* [Poll] Step={self.name}")
         return runtime.poll(self, level)
 
     def fetch(self, runtime: Runtime, query: ObsQuery = None, level: int = 0) -> ObsMap:
         assert self.config is not None, "Step.run() must be called first"
         prefix = "  " * level
-        print(f"{prefix}* [Step] {self.name}.fetch()")
+        print(f"{prefix}* [Fetch] Step={self.name}")
         subquery = set()
         for key in self.__dir__():
             attr = getattr(self, key)
@@ -119,7 +119,7 @@ class Experiment(Runnable):
 
         # do an independent run for each Args
         prefix = "  " * level
-        print(f"{prefix}* [Experiment] {self.name}.setup()")
+        print(f"{prefix}* [Setup] Experiment={self.name}")
         # setup iteration variables
         uP = set()
         uH = set()
@@ -160,7 +160,7 @@ class Experiment(Runnable):
     def run(self, runtime: Runtime, level: int = 0) -> Iterator[RunState]:
         prefix = "  " * level
         # performing an end-to-end experiment run on a single RunConfig
-        print(f"{prefix}* [Experiment] {self.name}.run()")
+        print(f"{prefix}* [Run] Experiment={self.name}")
         for step in self.steps:
             # check if the step was successfully queued
             if isinstance(step, Experiment):
@@ -179,7 +179,7 @@ class Experiment(Runnable):
 
     def run_sync(self, runtime: Runtime, dt: int = 1, level: int = 0) -> RunState:
         prefix = "  " * level
-        print(f"{prefix}* [Experiment] {self.name}.run_sync()")
+        print(f"{prefix}* [RunSync] Experiment={self.name}")
 
         # start the experiment
         for state in self.run(runtime=runtime, level=level + 1):
@@ -201,7 +201,7 @@ class Experiment(Runnable):
 
     def poll(self, runtime: Runtime, level: int = 0) -> Iterator[RunState]:
         prefix = "  " * level
-        print(f"{prefix}* [Experiment] {self.name}.poll()")
+        print(f"{prefix}* [Poll] Experiment={self.name}")
         for step in self.steps:
             # check if the step was successfully queued
             if isinstance(step, Experiment):
@@ -218,7 +218,7 @@ class Experiment(Runnable):
 
     def fetch(self, runtime: Runtime, query: ObsQuery = None, level: int = 0) -> ObsMap:
         prefix = "  " * level
-        print(f"{prefix}* [Experiment] {self.name}.fetch()")
+        print(f"{prefix}* [Fetch] Experiment={self.name}")
         obs = dict()
         for step in self.steps:
             result = step.fetch(runtime=runtime, query=query, level=level + 1)
